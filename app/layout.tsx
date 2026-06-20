@@ -23,7 +23,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DATA/CO — Consultoría de datos",
+  title: "DATA/GOB — Consultoría de datos",
   description:
     "Plataformas, pipelines y dashboards que convierten datos en decisiones.",
 };
