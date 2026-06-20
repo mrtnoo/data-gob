@@ -506,7 +506,7 @@ export default function Home() {
 
       <footer className="relative z-10 border-t border-white/10 px-6 py-8">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 font-mono text-xs text-white/35 md:flex-row md:justify-between">
-          <span>DATA/CO — Santiago, Chile</span>
+          <span>DATAGOB — Santiago, Chile</span>
           <span>
             © {new Date().getFullYear()} Todos los derechos reservados
           </span>
