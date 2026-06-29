@@ -16,7 +16,7 @@ export async function POST(request: Request) {
         }
 
         await resend.emails.send({
-            from: "Formulario web <onboarding@resend.dev>",
+            from: "Contacto DataGob <onboarding@resend.dev>",
             to: process.env.CONTACT_EMAIL_TO || "il.9hetto@gmail.com",
             replyTo: email,
             subject: `Nueva consulta: ${asunto || "Sin asunto"} — ${empresa || "Sin empresa"}`,

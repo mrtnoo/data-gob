@@ -858,9 +858,6 @@ export default function Home() {
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-[#3D9B7C]" />
                 </span>
 
-                <span className="font-mono text-[11px] uppercase tracking-wider text-[#3D9B7C]">
-                  Pipeline Activo
-                </span>
               </div>
             </div>
 
