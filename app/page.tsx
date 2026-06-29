@@ -261,58 +261,94 @@ function PaqueteDatos({
 
 function DiagramaFlujo() {
   return (
-    <svg viewBox="0 0 640 220" className="h-auto w-full max-w-3xl" aria-hidden="true">
-      {/* líneas estáticas de cada tramo, debajo de los paquetes animados */}
+    <svg
+      viewBox="0 0 700 250"
+      className="h-auto w-full max-w-4xl block mx-auto"
+      aria-hidden="true"
+    >
+      <defs>
+        <filter id="softGlow">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <linearGradient id="flowStroke" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#3A453F" stopOpacity="0.2" />
+          <stop offset="50%" stopColor="#49D6A3" stopOpacity="0.6" />
+          <stop offset="100%" stopColor="#3A453F" stopOpacity="0.2" />
+        </linearGradient>
+      </defs>
+
+      {/* conexiones más orgánicas */}
       {TRAMOS.map((t, i) => {
         const [x1, y1] = t.from;
         const [x2, y2] = t.to;
 
+        const cx1 = x1 + (x2 - x1) * 0.35;
+        const cx2 = x1 + (x2 - x1) * 0.65;
+
         const path = `
-              M ${x1} ${y1}
-              C ${x1 + 40} ${y1},
-                ${x2 - 40} ${y2},
-                ${x2} ${y2}
-            `;
+          M ${x1} ${y1}
+          C ${cx1} ${y1 - 35},
+            ${cx2} ${y2 + 35},
+            ${x2} ${y2}
+        `;
 
         return (
           <path
             key={i}
             d={path}
             fill="none"
-            stroke="#3A453F"
-            strokeWidth="2"
+            stroke="url(#flowStroke)"
+            strokeWidth="2.2"
             strokeLinecap="round"
           />
         );
       })}
 
-      {/* paquetes de datos viajando por cada tramo, en cascada */}
+      {/* paquetes de datos */}
       {TRAMOS.map((t, i) => (
         <PaqueteDatos key={i} from={t.from} to={t.to} delay={t.delay} />
       ))}
 
-
-      {/* nodos */}
+      {/* nodos con jerarquía visual */}
       {NODOS_FLUJO.map((n) => {
         const x = Number(n.x);
         const y = Number(n.y);
-        const w = n.w ?? 64;
+        const w = n.w ?? 72;
 
         if (isNaN(x) || isNaN(y)) return null;
 
+
+
+        let fill = "rgba(18, 25, 23, 0.75)";
+        let stroke = "rgba(73, 214, 163, 0.25)";
+
+
         return (
-          <g key={n.id}>
+          <g key={n.id} filter="url(#softGlow)">
             <rect
               x={x - w / 2}
-              y={y - 16}
+              y={y - 18}
               width={w}
-              height="32"
-              rx="999"
-              ry="999"
-              fill="rgba(18, 25, 23, 0.72)"
-              stroke="rgba(73, 214, 163, 0.35)"
-              strokeWidth="1"
-              filter="url(#softGlow)"
+              height="36"
+              rx="14"
+              ry="14"
+              fill={fill}
+              stroke={stroke}
+              strokeWidth="1.2"
+            />
+
+            {/* indicador tipo nodo */}
+            <circle
+              cx={x - w / 2 + 10}
+              cy={y}
+              r="3"
+              fill={stroke}
+              opacity="0.9"
             />
 
             <text
@@ -320,8 +356,9 @@ function DiagramaFlujo() {
               y={y + 4}
               textAnchor="middle"
               fontFamily="ui-sans-serif, system-ui"
-              fontSize="10"
+              fontSize="11"
               fill="#F5F1E8"
+              opacity="0.95"
             >
               {n.id}
             </text>
