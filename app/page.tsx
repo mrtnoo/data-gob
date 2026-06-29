@@ -263,44 +263,64 @@ function DiagramaFlujo() {
   return (
     <svg viewBox="0 0 640 220" className="h-auto w-full max-w-3xl" aria-hidden="true">
       {/* líneas estáticas de cada tramo, debajo de los paquetes animados */}
-      {TRAMOS.map((t, i) => (
-        <line
-          key={i}
-          x1={t.from[0]}
-          y1={t.from[1]}
-          x2={t.to[0]}
-          y2={t.to[1]}
-          stroke="#3A453F"
-          strokeWidth="1"
-        />
-      ))}
+      {TRAMOS.map((t, i) => {
+        const [x1, y1] = t.from;
+        const [x2, y2] = t.to;
+
+        const path = `
+              M ${x1} ${y1}
+              C ${x1 + 40} ${y1},
+                ${x2 - 40} ${y2},
+                ${x2} ${y2}
+            `;
+
+        return (
+          <path
+            key={i}
+            d={path}
+            fill="none"
+            stroke="#3A453F"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        );
+      })}
 
       {/* paquetes de datos viajando por cada tramo, en cascada */}
       {TRAMOS.map((t, i) => (
         <PaqueteDatos key={i} from={t.from} to={t.to} delay={t.delay} />
       ))}
 
+
       {/* nodos */}
       {NODOS_FLUJO.map((n) => {
+        const x = Number(n.x);
+        const y = Number(n.y);
         const w = n.w ?? 64;
+
+        if (isNaN(x) || isNaN(y)) return null;
+
         return (
           <g key={n.id}>
             <rect
-              x={n.x - w / 2}
-              y={n.y - 14}
+              x={x - w / 2}
+              y={y - 16}
               width={w}
-              height="28"
-              rx="2"
-              fill="#0E1412"
-              stroke={colorNodo(n.variante)}
-              strokeWidth={n.variante === "fuente" ? 1 : 1.25}
+              height="32"
+              rx="999"
+              ry="999"
+              fill="rgba(18, 25, 23, 0.72)"
+              stroke="rgba(73, 214, 163, 0.35)"
+              strokeWidth="1"
+              filter="url(#softGlow)"
             />
+
             <text
-              x={n.x}
-              y={n.y + 4}
+              x={x}
+              y={y + 4}
               textAnchor="middle"
-              fontFamily="ui-monospace, monospace"
-              fontSize="9.5"
+              fontFamily="ui-sans-serif, system-ui"
+              fontSize="10"
               fill="#F5F1E8"
             >
               {n.id}
@@ -308,28 +328,6 @@ function DiagramaFlujo() {
           </g>
         );
       })}
-
-      {/* rótulos de columna */}
-      {[
-        { x: COL_FUENTE, label: "FUENTES" },
-        { x: (COL_INGESTA + COL_GOBIERNO) / 2, label: "INGESTA / GOBIERNO" },
-        { x: COL_BODEGA, label: "BODEGA" },
-        { x: COL_MODELO, label: "ML / DATA SCIENCE" },
-        { x: COL_SALIDA, label: "SALIDAS" },
-      ].map((c) => (
-        <text
-          key={c.label}
-          x={c.x}
-          y="212"
-          textAnchor="middle"
-          fontFamily="ui-monospace, monospace"
-          fontSize="7.5"
-          letterSpacing="0.5"
-          fill="#8A9690"
-        >
-          {c.label}
-        </text>
-      ))}
     </svg>
   );
 }
@@ -675,23 +673,31 @@ export default function Home() {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
 
           {/* Logo */}
-          <a
-            href="#"
-            className="group flex items-center gap-3"
-          >
+          <a href="#" className="group flex items-center gap-3">
+
             <motion.div
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="h-2 w-2 rounded-full bg-[#3D9B7C]"
-            />
+              whileHover={{ rotate: 180 }}
+              transition={{ duration: 0.6 }}
+              className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[#3D9B7C]/30 bg-[#3D9B7C]/10"
+            >
+              <div className="absolute h-1.5 w-1.5 rounded-full bg-[#3D9B7C]" />
+              <div className="absolute left-2 top-2 h-1.5 w-1.5 rounded-full bg-[#3D9B7C]" />
+              <div className="absolute right-2 bottom-2 h-1.5 w-1.5 rounded-full bg-[#3D9B7C]" />
 
-            <span className="font-serif text-xl font-semibold tracking-tight text-white transition-transform duration-300 group-hover:scale-105">
-              DATA<span className="text-[#3D9B7C]">GOB</span>
-            </span>
+              <div className="absolute h-px w-5 rotate-45 bg-[#3D9B7C]/70" />
+              <div className="absolute h-px w-5 -rotate-45 bg-[#3D9B7C]/70" />
+            </motion.div>
 
-            <span className="hidden border-l border-white/10 pl-3 text-[11px] text-[#8A9690] lg:block">
-              Data & AI
-            </span>
+            <div className="flex flex-col leading-none">
+              <span className="font-serif text-xl font-semibold tracking-tight text-white">
+                DATA<span className="text-[#3D9B7C]">GOB</span>
+              </span>
+
+              <span className="text-[10px] uppercase tracking-[0.35em] text-[#8A9690]">
+                Data Engineering · AI
+              </span>
+            </div>
+
           </a>
 
           {/* Navegación */}
@@ -784,24 +790,47 @@ export default function Home() {
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="mt-16 overflow-x-auto rounded-md border border-[#F5F1E8]/12 bg-[#141B18] p-6 shadow-[0_0_40px_-12px_rgba(61,155,124,0.25)] md:p-8"
+            className="relative mt-20 overflow-hidden rounded-2xl border border-[#3D9B7C]/15 bg-gradient-to-br from-[#111815] via-[#141B18] to-[#0F1513] shadow-[0_20px_80px_-30px_rgba(61,155,124,0.35)]"
           >
-            <div className="mb-5 flex items-center justify-between gap-4">
-              <p className="font-mono text-[11px] uppercase tracking-wider text-[#8A9690]">
-                Flujo de datos, de la fuente al modelo y al reporte
-              </p>
-              <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-[#3D9B7C]">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#3D9B7C] opacity-60" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#3D9B7C]" />
+            {/* Glow */}
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#3D9B7C] to-transparent opacity-60" />
+
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-white/5 px-8 py-5">
+              <div>
+                <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-[#3D9B7C]">
+                  Data Pipeline
+                </p>
+
+                <h3 className="mt-2 text-lg font-semibold text-[#F5F1E8]">
+                  Flujo de datos end-to-end
+                </h3>
+
+                <p className="mt-1 text-sm text-[#8A9690]">
+                  Desde las fuentes de datos hasta dashboards y analítica avanzada.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 rounded-full border border-[#3D9B7C]/20 bg-[#3D9B7C]/10 px-4 py-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#3D9B7C]" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#3D9B7C]" />
                 </span>
-                En vivo
-              </span>
+
+                <span className="font-mono text-[11px] uppercase tracking-wider text-[#3D9B7C]">
+                  Pipeline Activo
+                </span>
+              </div>
             </div>
-            <DiagramaFlujo />
+
+            {/* Diagram */}
+            <div className="relative p-8">
+              <DiagramaFlujo />
+            </div>
           </motion.div>
         </motion.div>
       </section>
