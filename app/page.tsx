@@ -1,7 +1,9 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
+import { AnimatePresence, motion, useScroll, useTransform } from "framer-motion";
 import { useRef, useState } from "react";
+import { Menu, X } from "lucide-react";
+
 
 /* ------------------------------------------------------------------ */
 /*  Paleta — DataGob (modo oscuro / consola)                            */
@@ -677,7 +679,7 @@ export default function Home() {
     [0, 0.2],
     ["rgba(16,23,21,0)", "rgba(16,23,21,.85)"]
   );
-
+  const [menuOpen, setMenuOpen] = useState(false);
   const headerPadding = useTransform(
     scrollYProgress,
     [0, 0.2],
@@ -766,16 +768,67 @@ export default function Home() {
           </nav>
 
           {/* CTA */}
-          <motion.a
-            href="#contacto"
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.98 }}
-            className="rounded-full bg-[#3D9B7C] px-4 py-2 font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-white transition-all hover:bg-[#46b18d]"
-          >
-            Agenda una consultoría
-          </motion.a>
+          <div className="flex items-center gap-3">
+            {/* Botón escritorio */}
+            <motion.a
+              href="#contacto"
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.98 }}
+              className="hidden md:inline-flex rounded-full bg-[#3D9B7C] px-4 py-2 font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-white transition-all hover:bg-[#46b18d]"
+            >
+              Agenda una consultoría
+            </motion.a>
+
+            {/* Botón hamburguesa */}
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white md:hidden"
+              aria-label="Abrir menú"
+            >
+              {menuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
 
         </div>
+        <AnimatePresence>
+          {menuOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.25 }}
+              className="border-t border-white/10 bg-[#101715]/95 backdrop-blur-xl md:hidden"
+            >
+              <div className="flex flex-col px-6 py-6">
+
+                {[
+                  { label: "Servicios", href: "#servicios" },
+                  { label: "Cómo trabajamos", href: "#proceso" },
+                  { label: "Resultados", href: "#metricas" },
+                  { label: "Contacto", href: "#contacto" },
+                ].map((item) => (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    onClick={() => setMenuOpen(false)}
+                    className="border-b border-white/5 py-4 font-mono text-sm uppercase tracking-[0.18em] text-[#B7C4BE] transition hover:text-white"
+                  >
+                    {item.label}
+                  </a>
+                ))}
+
+                <a
+                  href="#contacto"
+                  onClick={() => setMenuOpen(false)}
+                  className="mt-6 rounded-full bg-[#3D9B7C] py-3 text-center font-mono text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-[#46b18d]"
+                >
+                  Agenda una consultoría
+                </a>
+
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.header>
 
       {/* ---------------------------------------------------------- */}
