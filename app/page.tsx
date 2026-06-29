@@ -625,47 +625,115 @@ function ContactSection() {
   );
 }
 
+
+
+
 export default function Home() {
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: heroRef,
     offset: ["start start", "end start"],
+
   });
   const heroOpacity = useTransform(scrollYProgress, [0, 1], [1, 0.4]);
   const heroY = useTransform(scrollYProgress, [0, 1], [0, 60]);
+  const headerBackground = useTransform(
+    scrollYProgress,
+    [0, 0.2],
+    ["rgba(16,23,21,0)", "rgba(16,23,21,.85)"]
+  );
+
+  const headerPadding = useTransform(
+    scrollYProgress,
+    [0, 0.2],
+    [24, 14]
+  );
+
+  const headerWidth = useTransform(
+    scrollYProgress,
+    [0, 0.2],
+    ["100%", "92%"]
+  );
+
+  const headerRadius = useTransform(
+    scrollYProgress,
+    [0, 0.2],
+    [0, 20]
+  );
 
   return (
     <main className="bg-[#0E1412] text-[#F5F1E8]">
       {/* ---------------------------------------------------------- */}
       {/* Header — membrete                                            */}
       {/* ---------------------------------------------------------- */}
-      <header className="relative z-10 border-b border-[#2A3530]">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <span className="font-serif text-lg font-medium tracking-tight">
-            DATA<span className="text-[#3D9B7C]">GOB</span>
-          </span>
-          <nav className="hidden gap-8 font-mono text-xs uppercase tracking-wider text-[#8A9690] md:flex">
-            <a href="#servicios" className="transition-colors hover:text-[#F5F1E8]">
-              Servicios
-            </a>
-            <a href="#proceso" className="transition-colors hover:text-[#F5F1E8]">
-              Cómo trabajamos
-            </a>
-            <a href="#metricas" className="transition-colors hover:text-[#F5F1E8]">
-              Resultados
-            </a>
-            <a href="#contacto" className="transition-colors hover:text-[#F5F1E8]">
-              Contacto
-            </a>
-          </nav>
+      <motion.header
+        initial={{ y: -80, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6 }}
+        className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[#101715]/80 backdrop-blur-xl"
+      >
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+
+          {/* Logo */}
           <a
-            href="#contacto"
-            className="border border-[#F5F1E8]/25 px-4 py-2 font-mono text-xs uppercase tracking-wider transition-colors hover:border-[#3D9B7C] hover:text-[#3D9B7C]"
+            href="#"
+            className="group flex items-center gap-3"
           >
-            Agendar reunión
+            <motion.div
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="h-2 w-2 rounded-full bg-[#3D9B7C]"
+            />
+
+            <span className="font-serif text-xl font-semibold tracking-tight text-white transition-transform duration-300 group-hover:scale-105">
+              DATA<span className="text-[#3D9B7C]">GOB</span>
+            </span>
+
+            <span className="hidden border-l border-white/10 pl-3 text-[11px] text-[#8A9690] lg:block">
+              Data & AI
+            </span>
           </a>
+
+          {/* Navegación */}
+          <nav className="hidden items-center gap-8 md:flex">
+            {[
+              "Servicios",
+              "Cómo trabajamos",
+              "Resultados",
+              "Contacto",
+            ].map((item, index) => (
+              <a
+                key={index}
+                href={
+                  item === "Servicios"
+                    ? "#servicios"
+                    : item === "Cómo trabajamos"
+                      ? "#proceso"
+                      : item === "Resultados"
+                        ? "#metricas"
+                        : "#contacto"
+                }
+                className="group relative font-mono text-[11px] uppercase tracking-[0.22em] text-[#9BA8A2] transition-colors hover:text-white"
+              >
+                {item}
+
+                <span className="absolute -bottom-2 left-0 h-px w-0 bg-[#3D9B7C] transition-all duration-300 group-hover:w-full" />
+              </a>
+            ))}
+          </nav>
+
+          {/* CTA */}
+          <motion.a
+            href="#contacto"
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.98 }}
+            className="rounded-full bg-[#3D9B7C] px-4 py-2 font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-white transition-all hover:bg-[#46b18d]"
+          >
+            Agenda una consultoría
+          </motion.a>
+
         </div>
-      </header>
+      </motion.header>
 
       {/* ---------------------------------------------------------- */}
       {/* Hero — tesis directa + diagrama de linaje                    */}
@@ -685,8 +753,7 @@ export default function Home() {
             </p>
 
             <h1 className="max-w-3xl font-serif text-4xl font-medium leading-[1.15] tracking-tight md:text-6xl">
-              Ordenamos los datos de tu empresa, los gobernamos y construimos
-              los reportes y automatizaciones que se sostienen en el tiempo.
+              Impulsa tu empresa con Ingeniería de Datos, Analítica Avanzada y Automatización Inteligente.
             </h1>
 
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[#8A9690]">
