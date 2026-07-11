@@ -20,6 +20,16 @@ import { Menu, X } from "lucide-react";
 /*  Contenido                                                          */
 /* ------------------------------------------------------------------ */
 
+const TECH_PILLS: Record<string, string[]> = {
+  ING: ["AWS Glue", "BigQuery", "Azure Synapse", "Airflow", "dbt"],
+  GOB: ["DataHub", "Collibra", "Great Expectations", "dbt tests", "OpenMetadata"],
+  ML: ["scikit-learn", "XGBoost", "PyTorch", "MLflow", "SageMaker"],
+  BI: ["Power BI", "Looker", "Tableau", "QuickSight", "dbt metrics"],
+  AUT: ["UiPath", "Selenium", "n8n", "Python"],
+  EST: ["DMMI", "ISO 27001", "Roadmap"],
+};
+
+
 const SERVICIOS = [
   {
     folio: "DG-01 / ING",
@@ -929,20 +939,19 @@ export default function Home() {
           </div>
           <div className="mb-16 flex flex-col gap-4 border-b border-[#2A3530] pb-10 md:flex-row md:items-end md:justify-between">
             <h2 className="font-serif text-4xl font-medium tracking-tight md:text-5xl">
-              Siete disciplinas, un mismo expediente
+              Distintos servicios, para potenciar
             </h2>
             <p className="max-w-sm text-sm text-[#8A9690]">
-              Cada servicio puede contratarse por separado, pero está
-              diseñado para encajar con los demás sobre la misma base de
-              datos.
+              Comienza por el servicio que genere mayor
+              impacto y expande tu plataforma de datos a medida que evolucionan las necesidades de tu organización..
             </p>
           </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {/* Cambia grid-cols-3 → grid-cols-2, y elimina la lógica de esML para col-span */}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {SERVICIOS.map((s, i) => {
               const clave = iconoClave(s.folio);
               const Icono = ICONOS_SERVICIO[clave];
-              const destacado = clave === "ML" || clave === "GOB";
+              const esAmbar = clave === "BI" || clave === "AUT" || clave === "EST";
 
               return (
                 <motion.div
@@ -950,40 +959,70 @@ export default function Home() {
                   initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-80px" }}
-                  transition={{ duration: 0.45, delay: (i % 3) * 0.07 }}
-                  className={`group relative overflow-hidden rounded-lg border border-[#2A3530] bg-[#141B18] p-7 transition-colors duration-300 hover:border-[#3D9B7C]/50 ${destacado ? "md:col-span-2 md:row-span-1" : ""
-                    } ${i === 0 ? "pb-16" : ""}`}
+                  transition={{ duration: 0.45, delay: (i % 2) * 0.07 }}
+                  className={`group relative overflow-hidden rounded-xl border bg-[#111916] p-6 transition-all duration-300
+          ${esAmbar
+                      ? "border-[#1E2B26] hover:border-[#D97A4D]/30"
+                      : "border-[#1E2B26] hover:border-[#3D9B7C]/30"
+                    }
+          hover:-translate-y-0.5`}
                 >
-                  {/* glow de hover, oculto por defecto */}
-                  <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#3D9B7C] opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-[0.12]" />
+                  {/* barra de acento lateral */}
+                  <div className={`absolute left-0 top-4 bottom-4 w-0.5 rounded-r-sm transition-opacity duration-300
+          ${esAmbar ? "bg-[#D97A4D]" : "bg-[#3D9B7C]"}
+          opacity-40 group-hover:opacity-100`}
+                  />
 
-                  {i === 0 && <SelloValidacion />}
+                  {/* glow de esquina */}
+                  <div className={`pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full blur-3xl
+          transition-opacity duration-500 opacity-0 group-hover:opacity-[0.09]
+          ${esAmbar ? "bg-[#D97A4D]" : "bg-[#3D9B7C]"}`}
+                  />
 
-                  <div className="relative flex items-start justify-between gap-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[#2A3530] text-[#8A9690] transition-colors duration-300 group-hover:border-[#3D9B7C]/60 group-hover:text-[#3D9B7C]">
-                      {Icono ? <Icono className="h-5 w-5" /> : null}
-                    </div>
-                    <span className="rounded-sm border border-[#2A3530] px-2 py-1 font-mono text-[10px] tracking-wider text-[#8A9690] transition-colors duration-300 group-hover:border-[#D97A4D]/40 group-hover:text-[#D97A4D]">
-                      {s.folio}
-                    </span>
+                  {/* folio en esquina */}
+                  <span className="absolute right-4 top-3.5 font-mono text-[9px] tracking-[0.15em] text-[#2E4039] transition-colors duration-300 group-hover:text-[#3D9B7C]/50">
+                    {s.folio}
+                  </span>
+
+                  {/* ícono */}
+                  <div className={`mb-5 flex h-9 w-9 items-center justify-center rounded-lg border transition-all duration-300
+          ${esAmbar
+                      ? "border-[#1E2B26] text-[#8A9690] group-hover:border-[#D97A4D]/40 group-hover:bg-[#D97A4D]/05 group-hover:text-[#D97A4D]"
+                      : "border-[#1E2B26] text-[#8A9690] group-hover:border-[#3D9B7C]/40 group-hover:bg-[#3D9B7C]/05 group-hover:text-[#3D9B7C]"
+                    }`}
+                  >
+                    {Icono ? <Icono className="h-4 w-4" /> : null}
                   </div>
 
-                  <p className="relative mt-5 font-mono text-[11px] uppercase tracking-wider text-[#3D9B7C]">
+                  {/* tag + título */}
+                  <p className={`font-mono text-[10px] uppercase tracking-wider
+          ${esAmbar ? "text-[#D97A4D]" : "text-[#3D9B7C]"}`}>
                     {s.tag}
                   </p>
-                  <h3 className="relative mt-2 font-serif text-xl font-medium leading-snug">
+                  <h3 className="mt-1.5 font-serif text-[17px] font-medium leading-snug text-[#F5F1E8]">
                     {s.nombre}
                   </h3>
-                  <p className="relative mt-3 text-sm leading-relaxed text-[#8A9690]">
+                  <p className="mt-2.5 text-[12px] leading-relaxed text-[#6A7A74] transition-colors duration-300 group-hover:text-[#8A9690]">
                     {s.descripcion}
                   </p>
 
-                  <div className="relative mt-6 h-px w-8 bg-[#2A3530] transition-all duration-300 group-hover:w-14 group-hover:bg-[#3D9B7C]" />
+                  {/* pills de tecnología */}
+                  <div className="mt-4 flex flex-wrap gap-1.5">
+                    {(TECH_PILLS[clave] ?? []).map((t) => (
+                      <span key={t} className="rounded border border-[#1E2B26] px-2 py-0.5 font-mono text-[9.5px] tracking-wide text-[#4A5A54] transition-colors duration-300 group-hover:border-[#2A3D34] group-hover:text-[#6A8A7A]">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* divisor animado */}
+                  <div className={`mt-5 h-px w-6 transition-all duration-300 group-hover:w-12
+          ${esAmbar ? "bg-[#1E2B26] group-hover:bg-[#D97A4D]" : "bg-[#1E2B26] group-hover:bg-[#3D9B7C]"}`}
+                  />
                 </motion.div>
               );
             })}
           </div>
-        </div>
       </section>
 
       {/* ---------------------------------------------------------- */}
