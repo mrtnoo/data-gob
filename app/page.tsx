@@ -856,12 +856,11 @@ export default function Home() {
             </h1>
 
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[#8A9690]">
-              Trabajamos con empresas cuyos datos viven repartidos entre un
-              ERP, planillas y sistemas de soporte. Diseñamos la arquitectura,
-              definimos quién es dueño de cada dato y construimos, sobre esa
-              base, modelos de machine learning, tableros de BI, consultas en
-              lenguaje natural y procesos automatizados — sin reescribir todo
-              cada vez que el negocio cambia.
+              Tus datos están dispersos en sistemas que no se hablan entre sí,
+              en formatos inconsistentes y sin dueño claro. Los conectamos,
+              los modelamos y construimos encima — pipelines con linaje
+              trazable, modelos ML en producción y tableros que no mienten —
+              con una arquitectura que no hay que tirar cuando el negocio escala.
             </p>
 
             <div className="mt-10 flex flex-wrap gap-4">
