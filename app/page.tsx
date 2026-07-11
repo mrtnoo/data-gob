@@ -23,52 +23,45 @@ import { Menu, X } from "lucide-react";
 const SERVICIOS = [
   {
     folio: "DG-01 / ING",
-    tag: "Pipelines",
+    tag: "Lakehouse & Data Warehouse",
     nombre: "Ingeniería de datos",
     descripcion:
-      "Diseño y construcción de pipelines ETL/ELT y bodegas de datos en AWS, GCP o Azure. Tomamos los datos donde nacen — ERP, planillas, plataformas de soporte — y los dejamos en un formato confiable, documentado y con monitoreo de fallas, listo para reportes y modelos.",
+      "Diseñamos e implementamos plataformas de datos modernas, Data Warehouses y arquitecturas Lakehouse. Construimos pipelines ETL/ELT escalables que integran información desde múltiples fuentes, garantizando calidad, disponibilidad y rendimiento para analítica, reportería e inteligencia artificial.",
   },
   {
-    folio: "DG-02 / GOB",
-    tag: "Trazabilidad",
+    folio: "DG-02 / BI",
+    tag: "Dashboards & KPIs",
+    nombre: "Reportería y BI",
+    descripcion:
+      "Creamos dashboards ejecutivos, indicadores clave (KPIs) y modelos analíticos que entregan visibilidad en tiempo real del negocio. Transformamos datos complejos en información clara para mejorar el seguimiento y la toma de decisiones.",
+  },
+  {
+    folio: "DG-03 / GOB",
+    tag: "Calidad y Gobierno",
     nombre: "Gobierno y calidad de datos",
     descripcion:
-      "Catalogación, linaje y control de acceso. Definimos quién puede ver, editar y aprobar cada conjunto de datos, y dejamos trazabilidad de origen y transformaciones — la base que toda auditoría y todo modelo de IA necesita para ser confiable.",
+      "Implementamos procesos de gobierno de datos que aseguran calidad, trazabilidad, seguridad y cumplimiento normativo. Definimos estándares, catálogos y controles que permiten confiar en la información utilizada por toda la organización.",
   },
   {
-    folio: "DG-03 / ML",
-    tag: "Modelos predictivos",
-    nombre: "Machine Learning y data science",
+    folio: "DG-04 / ML",
+    tag: "Data Science",
+    nombre: "Machine Learning y Data Science",
     descripcion:
-      "Modelos predictivos, de clasificación y de detección de anomalías entrenados sobre tus datos reales — demanda, riesgo de fuga, mantenimiento predictivo. Incluye validación estadística y un plan de monitoreo para que el modelo no se degrade en producción.",
+      "Desarrollamos soluciones de inteligencia artificial, modelos predictivos y analítica avanzada para optimizar procesos, detectar oportunidades y anticipar escenarios. Llevamos los modelos desde la experimentación hasta ambientes productivos con monitoreo continuo.",
   },
   {
-    folio: "DG-04 / BI",
-    tag: "Tableros en vivo",
-    nombre: "Reportería e inteligencia de negocio",
-    descripcion:
-      "Tableros en Power BI, Looker o Tableau conectados directamente a tus fuentes, con métricas definidas una sola vez y consistentes en toda la organización. Reemplazamos el reporte armado a mano cada lunes por un dashboard que se actualiza solo.",
-  },
-  {
-    folio: "DG-05 / NLP",
-    tag: "Pregunta y responde",
-    nombre: "Consultas en lenguaje natural",
-    descripcion:
-      "Capa conversacional sobre tus datos: preguntas escritas en español que se traducen a consultas reales sobre tus bases y tableros, con la fuente y el cálculo siempre visibles. Pensado para quien necesita una cifra, no para quien quiere construir un reporte.",
-  },
-  {
-    folio: "DG-06 / AUT",
-    tag: "Flujos sin fricción",
+    folio: "DG-05 / AUT",
+    tag: "RPA & Integraciones",
     nombre: "Automatización de procesos",
     descripcion:
-      "Flujos que ejecutan tareas repetitivas sobre tus sistemas — conciliaciones, alertas, generación de documentos, actualización de planillas — con reglas claras, registro de cada ejecución y un punto de revisión humana donde corresponda.",
+      "Automatizamos procesos de negocio mediante RPA, APIs e integraciones inteligentes utilizando herramientas como UiPath, Selenium y n8n. Reducimos tiempos operativos, minimizamos errores y aumentamos la eficiencia mediante flujos seguros y escalables.",
   },
   {
-    folio: "DG-07 / EST",
-    tag: "Hoja de ruta",
+    folio: "DG-06 / EST",
+    tag: "Consultoría Estratégica",
     nombre: "Estrategia de datos",
     descripcion:
-      "Diagnóstico del estado actual de tus datos y una hoja de ruta priorizada — qué construir primero, con qué equipo y con qué retorno esperado. Para directorios y gerencias que necesitan decidir antes de contratar.",
+      "Diseñamos estrategias de datos alineadas con los objetivos del negocio. Evaluamos la madurez tecnológica, identificamos oportunidades de mejora y definimos una hoja de ruta para maximizar el valor de la información y acelerar la transformación digital.",
   },
 ];
 
