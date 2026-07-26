@@ -359,150 +359,223 @@ function DiagramaFlujoDesktop() {
 }
 
 function DiagramaFlujoMobile() {
-  /* Layout zig-zag vertical. Cada nodo alterna lado.
-     viewBox: 320 x 520. Centro X=160. */
-  const nodos = [
-    { id: "ERP", y: 30, lado: -1, color: "#64748B" },
-    { id: "CRM", y: 80, lado: 1, color: "#64748B" },
-    { id: "Planillas", y: 130, lado: -1, color: "#64748B" },
-    { id: "Soporte", y: 180, lado: 1, color: "#64748B" },
-    { id: "Ingesta", y: 240, lado: -1, color: "#0EA5E9" },
-    { id: "Gobierno", y: 300, lado: 1, color: "#0EA5E9" },
-    { id: "Warehouse", y: 360, lado: 0, color: "#2563EB", w: 140 },
-    { id: "ML", y: 420, lado: -1, color: "#0EA5E9" },
-    { id: "DataSci", y: 470, lado: 1, color: "#0EA5E9" },
-    { id: "BI", y: 530, lado: -1, color: "#2563EB" },
-    { id: "NLP", y: 580, lado: 1, color: "#2563EB" },
+  /* ── Layout zig-zag vertical con grupos y tuberías ──
+     viewBox: 360 x 720. Centro X=180. */
+
+  type NodoMobile = {
+    id: string;
+    y: number;
+    lado: -1 | 0 | 1;        // -1 izq, 0 centro, 1 der
+    color: string;
+    w?: number;
+    grupo: string;
+  };
+
+  const nodos: NodoMobile[] = [
+    { id: "ERP", y: 55, lado: -1, color: "#64748B", grupo: "fuentes" },
+    { id: "CRM", y: 105, lado: 1, color: "#64748B", grupo: "fuentes" },
+    { id: "Planillas", y: 155, lado: -1, color: "#64748B", grupo: "fuentes" },
+    { id: "Soporte", y: 205, lado: 1, color: "#64748B", grupo: "fuentes" },
+
+    { id: "Ingesta", y: 290, lado: -1, color: "#0EA5E9", grupo: "proceso" },
+    { id: "Gobierno", y: 350, lado: 1, color: "#0EA5E9", grupo: "proceso" },
+
+    { id: "Warehouse", y: 430, lado: 0, color: "#2563EB", w: 150, grupo: "almacen" },
+
+    { id: "ML", y: 510, lado: -1, color: "#0EA5E9", grupo: "modelos" },
+    { id: "DataSci", y: 570, lado: 1, color: "#0EA5E9", grupo: "modelos" },
+
+    { id: "BI", y: 650, lado: -1, color: "#2563EB", grupo: "salidas" },
+    { id: "NLP", y: 710, lado: 1, color: "#2563EB", grupo: "salidas" },
   ];
 
-  const CX_CENTRO = 160;
-  const OFFSET_X = 90;   // distancia desde el centro
-  const R = 6;
+  const grupos = [
+    { key: "fuentes", label: "FUENTES", y0: 20, y1: 240, color: "#64748B" },
+    { key: "proceso", label: "PROCESO", y0: 255, y1: 385, color: "#0EA5E9" },
+    { key: "almacen", label: "ALMACÉN", y0: 400, y1: 470, color: "#2563EB" },
+    { key: "modelos", label: "MODELOS", y0: 485, y1: 605, color: "#0EA5E9" },
+    { key: "salidas", label: "SALIDAS", y0: 620, y1: 745, color: "#2563EB" },
+  ];
 
-  function cx(n: typeof nodos[0]) {
+  const CX_CENTRO = 180;
+  const OFFSET_X = 95;
+  const R = 8;
+
+  function cx(n: NodoMobile) {
     if (n.lado === 0) return CX_CENTRO;
     return CX_CENTRO + n.lado * OFFSET_X;
   }
 
-  // Conexiones zig-zag entre nodos consecutivos
-  const conexiones = nodos.slice(0, -1).map((n, i) => {
+  // ── Tuberías: paths gruesos con glow entre nodos consecutivos ──
+  const tuberias = nodos.slice(0, -1).map((n, i) => {
     const next = nodos[i + 1];
     const x1 = cx(n);
-    const y1 = n.y + R + 2;
+    const y1 = n.y + R + 4;
     const x2 = cx(next);
-    const y2 = next.y - R - 2;
-    // Punto de control para curva suave en zigzag
+    const y2 = next.y - R - 4;
     const mx = (x1 + x2) / 2;
     const my = (y1 + y2) / 2;
-    // Si van del mismo lado, curva hacia afuera
-    const cx1 = n.lado === next.lado ? mx + (n.lado * 40) : mx;
-    const cx2 = n.lado === next.lado ? mx + (next.lado * 40) : mx;
-    return { x1, y1, x2, y2, cx1, cx2, my, delay: i * 0.18 };
+    // Curva tipo "S" suave
+    const cp1x = x1 + (n.lado === next.lado ? n.lado * 50 : (x2 - x1) * 0.3);
+    const cp1y = y1 + (y2 - y1) * 0.35;
+    const cp2x = x2 - (n.lado === next.lado ? next.lado * 50 : (x2 - x1) * 0.3);
+    const cp2y = y2 - (y2 - y1) * 0.35;
+    const d = `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
+    return { d, delay: i * 0.22, color: next.color };
   });
 
   return (
-    <div className="md:hidden w-full overflow-x-auto">
+    <div className="md:hidden w-full">
       <svg
-        viewBox="0 0 320 620"
+        viewBox="0 0 360 760"
         className="mx-auto h-auto w-full max-w-sm"
         aria-hidden="true"
       >
         <defs>
-          <linearGradient id="zigStroke" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#CBD5E1" stopOpacity="0.3" />
-            <stop offset="50%" stopColor="#38BDF8" stopOpacity="0.7" />
-            <stop offset="100%" stopColor="#CBD5E1" stopOpacity="0.3" />
-          </linearGradient>
-          <filter id="glowZig">
-            <feGaussianBlur stdDeviation="2.5" result="blur" />
+          {/* Glow para tuberías */}
+          <filter id="pipeGlow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
+          {/* Gradiente de tubería */}
+          <linearGradient id="pipeGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#E0F2FE" stopOpacity="0.6" />
+            <stop offset="50%" stopColor="#7DD3FC" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#E0F2FE" stopOpacity="0.6" />
+          </linearGradient>
         </defs>
 
-        {/* Líneas conectoras */}
-        {conexiones.map((c, i) => (
+        {/* ── Fondos de grupo ── */}
+        {grupos.map((g) => (
+          <g key={g.key}>
+            <rect
+              x="20"
+              y={g.y0}
+              width="320"
+              height={g.y1 - g.y0}
+              rx="18"
+              fill={g.color}
+              opacity="0.04"
+              stroke={g.color}
+              strokeOpacity="0.12"
+              strokeWidth="1"
+            />
+            <text
+              x="340"
+              y={g.y0 + 14}
+              textAnchor="end"
+              fontFamily="ui-monospace, monospace"
+              fontSize="9"
+              letterSpacing="2"
+              fill={g.color}
+              opacity="0.5"
+            >
+              {g.label}
+            </text>
+          </g>
+        ))}
+
+        {/* ── Tuberías (fondo grueso) ── */}
+        {tuberias.map((t, i) => (
           <path
-            key={`conn-${i}`}
-            d={`M ${c.x1} ${c.y1} Q ${c.cx1} ${c.my} ${c.x2} ${c.y2}`}
+            key={`pipe-bg-${i}`}
+            d={t.d}
             fill="none"
-            stroke="url(#zigStroke)"
-            strokeWidth="2"
+            stroke="url(#pipeGrad)"
+            strokeWidth="10"
             strokeLinecap="round"
+            opacity="0.25"
+            filter="url(#pipeGlow)"
           />
         ))}
 
-        {/* Partículas animadas por cada conexión */}
-        {conexiones.map((c, i) => (
+        {/* ── Tuberías (línea fina interior) ── */}
+        {tuberias.map((t, i) => (
+          <path
+            key={`pipe-line-${i}`}
+            d={t.d}
+            fill="none"
+            stroke={t.color}
+            strokeWidth="2"
+            strokeLinecap="round"
+            opacity="0.5"
+          />
+        ))}
+
+        {/* ── Partículas viajando por las tuberías ── */}
+        {tuberias.map((t, i) => (
           <motion.circle
             key={`dot-${i}`}
-            r="3.5"
-            fill="#0EA5E9"
-            filter="url(#glowZig)"
+            r="4"
+            fill="#FFFFFF"
+            stroke={t.color}
+            strokeWidth="1.5"
             initial={{ opacity: 0 }}
-            animate={{
-              opacity: [0, 1, 1, 0],
-            }}
+            animate={{ opacity: [0, 1, 1, 0] }}
             transition={{
-              duration: 2,
-              delay: c.delay,
+              duration: 2.2,
+              delay: t.delay,
               repeat: Infinity,
-              repeatDelay: 1.2,
+              repeatDelay: 1,
               ease: "easeInOut",
-              times: [0, 0.15, 0.85, 1],
+              times: [0, 0.12, 0.88, 1],
             }}
           >
             <animateMotion
-              dur="2s"
+              dur="2.2s"
               repeatCount="indefinite"
-              begin={`${c.delay}s`}
-              path={`M ${c.x1} ${c.y1} Q ${c.cx1} ${c.my} ${c.x2} ${c.y2}`}
+              begin={`${t.delay}s`}
+              path={t.d}
             />
           </motion.circle>
         ))}
 
-        {/* Nodos */}
-        {nodos.map((n, i) => {
+        {/* ── Nodos ── */}
+        {nodos.map((n) => {
           const x = cx(n);
-          const w = n.w ?? 90;
-          const align = n.lado === -1 ? "end" : n.lado === 1 ? "start" : "middle";
-          const tx = n.lado === -1 ? x - 14 : n.lado === 1 ? x + 14 : x;
-          const ty = n.y + 4;
+          const w = n.w ?? 100;
+          const isCentro = n.lado === 0;
 
           return (
             <g key={n.id}>
-              {/* Glow de fondo */}
-              <circle cx={x} cy={n.y} r="18" fill={n.color} opacity="0.08" />
-              {/* Nodo */}
+              {/* Halo */}
+              <circle cx={x} cy={n.y} r="22" fill={n.color} opacity="0.06" />
+
+              {/* Caja del nodo */}
               <rect
                 x={x - w / 2}
-                y={n.y - 16}
+                y={n.y - 18}
                 width={w}
-                height="32"
-                rx="16"
-                fill="rgba(255,255,255,0.95)"
+                height="36"
+                rx="18"
+                fill="rgba(255,255,255,0.98)"
                 stroke={n.color}
-                strokeWidth="1.2"
-                strokeOpacity="0.5"
+                strokeWidth="1.4"
+                strokeOpacity="0.45"
               />
-              {/* Punto indicador */}
+
+              {/* Indicador lateral */}
               <circle
-                cx={n.lado === -1 ? x - w / 2 + 10 : n.lado === 1 ? x + w / 2 - 10 : x}
+                cx={isCentro ? x : n.lado === -1 ? x - w / 2 + 12 : x + w / 2 - 12}
                 cy={n.y}
-                r="2.5"
+                r="3"
                 fill={n.color}
-                opacity="0.7"
+                opacity="0.6"
               />
+
+              {/* Texto SIEMPRE centrado */}
               <text
-                x={tx}
-                y={ty}
-                textAnchor={align}
-                fontFamily="ui-sans-serif, system-ui"
-                fontSize="11"
+                x={x}
+                y={n.y + 4.5}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fontFamily="ui-sans-serif, system-ui, -apple-system, sans-serif"
+                fontSize="12"
+                fontWeight="500"
                 fill="#0F172A"
-                opacity="0.95"
               >
                 {n.id}
               </text>
