@@ -1,23 +1,42 @@
 "use client";
 
-import { AnimatePresence, motion, useScroll, useTransform } from "framer-motion";
-import { useRef, useState } from "react";
+import {
+  AnimatePresence,
+  motion,
+  useScroll,
+  useTransform,
+  useMotionValue,
+  useSpring,
+  useInView,
+} from "framer-motion";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { Menu, X } from "lucide-react";
 
-
 /* ------------------------------------------------------------------ */
-/*  Paleta — DataGob (modo oscuro / consola)                            */
-/*  Carbón:    #0E1412   (fondo base — carbón con tinte verde, no negro */
-/*              puro, conserva el ADN institucional)                   */
-/*  Marfil:    #F5F1E8   (texto principal)                              */
-/*  Verde-T:   #3D9B7C   (acento primario — "terminal", procesos vivos)*/
-/*  Ámbar:     #D97A4D   (acento secundario — folios, alertas)         */
-/*  Línea:     #2A3530   (bordes y divisores sobre el fondo oscuro)    */
-/*  Atenuado:  #8A9690   (texto secundario / terciario)                */
+/*  THEME — colores centralizados                                     */
 /* ------------------------------------------------------------------ */
 
+const THEME = {
+  primary: "#0EA5E9",
+  primaryHover: "#0284C7",
+  secondary: "#2563EB",
+  slate: {
+    50: "#F8FAFC",
+    100: "#F1F5F9",
+    200: "#E2E8F0",
+    300: "#CBD5E1",
+    400: "#94A3B8",
+    500: "#64748B",
+    600: "#475569",
+    700: "#334155",
+    800: "#1E293B",
+    900: "#0F172A",
+  },
+  white: "#FFFFFF",
+} as const;
+
 /* ------------------------------------------------------------------ */
-/*  Contenido                                                          */
+/*  Contenido                                                         */
 /* ------------------------------------------------------------------ */
 
 const TECH_PILLS: Record<string, string[]> = {
@@ -28,7 +47,6 @@ const TECH_PILLS: Record<string, string[]> = {
   AUT: ["UiPath", "Selenium", "n8n", "Python"],
   EST: ["DMMI", "ISO 27001", "Roadmap"],
 };
-
 
 const SERVICIOS = [
   {
@@ -76,10 +94,10 @@ const SERVICIOS = [
 ];
 
 const METRICAS = [
-  { valor: "100+", label: "Clientes activos" },
-  { valor: "99.9%", label: "Disponibilidad de pipelines" },
-  { valor: "24/7", label: "Monitoreo" },
-  { valor: "5M+", label: "Registros procesados / día" },
+  { valor: 100, sufijo: "+", label: "Clientes activos" },
+  { valor: 99.9, sufijo: "%", label: "Disponibilidad de pipelines" },
+  { valor: 24, sufijo: "/7", label: "Monitoreo" },
+  { valor: 5, sufijo: "M+", label: "Registros procesados / día" },
 ];
 
 const PROCESO = [
@@ -105,10 +123,29 @@ const PROCESO = [
   },
 ];
 
+const TESTIMONIOS = [
+  {
+    nombre: "Carlos Méndez",
+    cargo: "CIO, Grupo Financiero Andes",
+    texto:
+      "DataGob transformó nuestra infraestructura de datos en 8 semanas. Pasamos de reportes manuales a dashboards en tiempo real.",
+  },
+  {
+    nombre: "María José Riquelme",
+    cargo: "Directora de Operaciones, RetailPro",
+    texto:
+      "La automatización de procesos nos ahorra 40 horas semanales. La calidad del dato mejoró drásticamente desde el primer mes.",
+  },
+  {
+    nombre: "Andrés Fuentes",
+    cargo: "Head of Analytics, SaludDigital",
+    texto:
+      "Su gobierno de datos nos permitió cumplir normativas sin fricción. Ahora confiamos ciegamente en nuestros pipelines.",
+  },
+];
+
 /* ------------------------------------------------------------------ */
-/*  Sello de validación — el elemento de firma de la página.           */
-/*  Se "estampa" sobre la ficha al entrar en el viewport: una marca     */
-/*  de gobierno de datos, no un efecto decorativo.                     */
+/*  Sello de validación                                               */
 /* ------------------------------------------------------------------ */
 
 function SelloValidacion({ texto = "VERIFICADO" }: { texto?: string }) {
@@ -120,14 +157,14 @@ function SelloValidacion({ texto = "VERIFICADO" }: { texto?: string }) {
       viewport={{ once: true, margin: "-60px" }}
       transition={{ duration: 0.45, ease: [0.34, 1.56, 0.64, 1] }}
     >
-      <svg width="64" height="64" viewBox="0 0 76 76" className="opacity-[0.7]">
-        <circle cx="38" cy="38" r="34" fill="none" stroke="#D97A4D" strokeWidth="1.5" />
+      <svg width="64" height="64" viewBox="0 0 76 76" className="opacity-50">
+        <circle cx="38" cy="38" r="34" fill="none" stroke={THEME.secondary} strokeWidth="1.5" />
         <circle
           cx="38"
           cy="38"
           r="28"
           fill="none"
-          stroke="#D97A4D"
+          stroke={THEME.secondary}
           strokeWidth="1"
           strokeDasharray="2 3"
         />
@@ -135,7 +172,7 @@ function SelloValidacion({ texto = "VERIFICADO" }: { texto?: string }) {
           x="38"
           y="34"
           textAnchor="middle"
-          fill="#D97A4D"
+          fill={THEME.secondary}
           fontSize="8"
           fontFamily="ui-monospace, monospace"
           letterSpacing="1"
@@ -146,7 +183,7 @@ function SelloValidacion({ texto = "VERIFICADO" }: { texto?: string }) {
           x="38"
           y="46"
           textAnchor="middle"
-          fill="#D97A4D"
+          fill={THEME.secondary}
           fontSize="6"
           fontFamily="ui-monospace, monospace"
           letterSpacing="1.5"
@@ -159,11 +196,7 @@ function SelloValidacion({ texto = "VERIFICADO" }: { texto?: string }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Hero — diagrama de flujo de datos de extremo a extremo.             */
-/*  Seis etapas reales (fuentes → ingesta → gobierno → bodega →         */
-/*  modelos → salidas), con paquetes de datos que viajan en cascada     */
-/*  por cada tramo — no una sola línea punteada, sino el recorrido      */
-/*  completo en movimiento.                                             */
+/*  Diagrama de flujo — desktop complejo, mobile simplificado         */
 /* ------------------------------------------------------------------ */
 
 type NodoFlujo = {
@@ -171,7 +204,6 @@ type NodoFlujo = {
   x: number;
   y: number;
   w?: number;
-  variante?: "fuente" | "proceso" | "modelo" | "salida";
 };
 
 const COL_FUENTE = 36;
@@ -182,56 +214,35 @@ const COL_MODELO = 470;
 const COL_SALIDA = 604;
 
 const NODOS_FLUJO: NodoFlujo[] = [
-  { id: "ERP", x: COL_FUENTE, y: 26, variante: "fuente" },
-  { id: "CRM", x: COL_FUENTE, y: 80, variante: "fuente" },
-  { id: "Planillas", x: COL_FUENTE, y: 134, variante: "fuente" },
-  { id: "Soporte", x: COL_FUENTE, y: 188, variante: "fuente" },
-
-  { id: "Ingesta", x: COL_INGESTA, y: 53, variante: "proceso" },
-  { id: "Calidad y gobierno", x: COL_GOBIERNO, y: 161, w: 116, variante: "proceso" },
-
-  { id: "Bodega de datos", x: COL_BODEGA, y: 107, w: 110, variante: "proceso" },
-
-  { id: "Modelos ML", x: COL_MODELO, y: 60, w: 96, variante: "modelo" },
-  { id: "Data science", x: COL_MODELO, y: 154, w: 96, variante: "modelo" },
-
-  { id: "BI", x: COL_SALIDA, y: 26, variante: "salida" },
-  { id: "Lenguaje natural", x: COL_SALIDA, y: 80, w: 100, variante: "salida" },
-  { id: "Automatización", x: COL_SALIDA, y: 134, w: 100, variante: "salida" },
-  { id: "Alertas", x: COL_SALIDA, y: 188, variante: "salida" },
+  { id: "ERP", x: COL_FUENTE, y: 26 },
+  { id: "CRM", x: COL_FUENTE, y: 80 },
+  { id: "Planillas", x: COL_FUENTE, y: 134 },
+  { id: "Soporte", x: COL_FUENTE, y: 188 },
+  { id: "Ingesta", x: COL_INGESTA, y: 53 },
+  { id: "Calidad y gobierno", x: COL_GOBIERNO, y: 161, w: 116 },
+  { id: "Almacen de datos", x: COL_BODEGA, y: 107, w: 110 },
+  { id: "Modelos ML", x: COL_MODELO, y: 60, w: 96 },
+  { id: "Data science", x: COL_MODELO, y: 154, w: 96 },
+  { id: "BI", x: COL_SALIDA, y: 26 },
+  { id: "Lenguaje natural", x: COL_SALIDA, y: 80, w: 100 },
+  { id: "Automatización", x: COL_SALIDA, y: 134, w: 100 },
+  { id: "Alertas", x: COL_SALIDA, y: 188 },
 ];
 
-/* Tramos del recorrido: cada uno es un segmento recto entre dos puntos,
-   con un "lote" de datos que viaja a lo largo a un ritmo y desfase propio,
-   para que el conjunto se lea como flujo continuo en cascada. */
 const TRAMOS: { from: [number, number]; to: [number, number]; delay: number }[] = [
   { from: [COL_FUENTE + 34, 26], to: [COL_INGESTA - 40, 53], delay: 0 },
   { from: [COL_FUENTE + 34, 80], to: [COL_INGESTA - 40, 53], delay: 0.3 },
   { from: [COL_FUENTE + 34, 134], to: [COL_GOBIERNO - 50, 161], delay: 0.15 },
   { from: [COL_FUENTE + 34, 188], to: [COL_GOBIERNO - 50, 161], delay: 0.45 },
-
   { from: [COL_INGESTA + 40, 53], to: [COL_BODEGA - 48, 107], delay: 0.6 },
   { from: [COL_GOBIERNO + 50, 161], to: [COL_BODEGA - 48, 107], delay: 0.75 },
-
   { from: [COL_BODEGA + 48, 107], to: [COL_MODELO - 42, 60], delay: 0.95 },
   { from: [COL_BODEGA + 48, 107], to: [COL_MODELO - 42, 154], delay: 1.1 },
-
   { from: [COL_MODELO + 42, 60], to: [COL_SALIDA - 30, 26], delay: 1.3 },
   { from: [COL_MODELO + 42, 60], to: [COL_SALIDA - 44, 80], delay: 1.42 },
   { from: [COL_MODELO + 42, 154], to: [COL_SALIDA - 44, 134], delay: 1.5 },
   { from: [COL_MODELO + 42, 154], to: [COL_SALIDA - 30, 188], delay: 1.62 },
 ];
-
-function colorNodo(variante: NodoFlujo["variante"]) {
-  switch (variante) {
-    case "modelo":
-      return "#3D9B7C";
-    case "salida":
-      return "#D97A4D";
-    default:
-      return "#4A5650";
-  }
-}
 
 function PaqueteDatos({
   from,
@@ -245,7 +256,7 @@ function PaqueteDatos({
   return (
     <motion.circle
       r="3"
-      fill="#3D9B7C"
+      fill={THEME.primary}
       initial={{ opacity: 0 }}
       animate={{
         cx: [from[0], to[0]],
@@ -264,11 +275,11 @@ function PaqueteDatos({
   );
 }
 
-function DiagramaFlujo() {
+function DiagramaFlujoDesktop() {
   return (
     <svg
       viewBox="0 0 700 250"
-      className="h-auto w-full max-w-4xl block mx-auto"
+      className="hidden md:block h-auto w-full max-w-4xl mx-auto"
       aria-hidden="true"
     >
       <defs>
@@ -279,29 +290,19 @@ function DiagramaFlujo() {
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
-
         <linearGradient id="flowStroke" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#3A453F" stopOpacity="0.2" />
-          <stop offset="50%" stopColor="#49D6A3" stopOpacity="0.6" />
-          <stop offset="100%" stopColor="#3A453F" stopOpacity="0.2" />
+          <stop offset="0%" stopColor={THEME.slate[300]} stopOpacity="0.2" />
+          <stop offset="50%" stopColor="#38BDF8" stopOpacity="0.6" />
+          <stop offset="100%" stopColor={THEME.slate[300]} stopOpacity="0.2" />
         </linearGradient>
       </defs>
 
-      {/* conexiones más orgánicas */}
       {TRAMOS.map((t, i) => {
         const [x1, y1] = t.from;
         const [x2, y2] = t.to;
-
         const cx1 = x1 + (x2 - x1) * 0.35;
         const cx2 = x1 + (x2 - x1) * 0.65;
-
-        const path = `
-          M ${x1} ${y1}
-          C ${cx1} ${y1 - 35},
-            ${cx2} ${y2 + 35},
-            ${x2} ${y2}
-        `;
-
+        const path = `M ${x1} ${y1} C ${cx1} ${y1 - 35}, ${cx2} ${y2 + 35}, ${x2} ${y2}`;
         return (
           <path
             key={i}
@@ -314,25 +315,17 @@ function DiagramaFlujo() {
         );
       })}
 
-      {/* paquetes de datos */}
       {TRAMOS.map((t, i) => (
         <PaqueteDatos key={i} from={t.from} to={t.to} delay={t.delay} />
       ))}
 
-      {/* nodos con jerarquía visual */}
       {NODOS_FLUJO.map((n) => {
         const x = Number(n.x);
         const y = Number(n.y);
         const w = n.w ?? 72;
-
         if (isNaN(x) || isNaN(y)) return null;
-
-
-
-        let fill = "rgba(18, 25, 23, 0.75)";
-        let stroke = "rgba(73, 214, 163, 0.25)";
-
-
+        const fill = "rgba(255, 255, 255, 0.9)";
+        const stroke = "rgba(14, 165, 233, 0.4)";
         return (
           <g key={n.id} filter="url(#softGlow)">
             <rect
@@ -346,23 +339,14 @@ function DiagramaFlujo() {
               stroke={stroke}
               strokeWidth="1.2"
             />
-
-            {/* indicador tipo nodo */}
-            <circle
-              cx={x - w / 2 + 10}
-              cy={y}
-              r="3"
-              fill={stroke}
-              opacity="0.9"
-            />
-
+            <circle cx={x - w / 2 + 10} cy={y} r="3" fill={stroke} opacity="0.8" />
             <text
               x={x}
               y={y + 4}
               textAnchor="middle"
               fontFamily="ui-sans-serif, system-ui"
               fontSize="11"
-              fill="#F5F1E8"
+              fill={THEME.slate[900]}
               opacity="0.95"
             >
               {n.id}
@@ -374,41 +358,60 @@ function DiagramaFlujo() {
   );
 }
 
+function DiagramaFlujoMobile() {
+  const pasos = [
+    { label: "Fuentes", items: ["ERP", "CRM", "Planillas", "Soporte"] },
+    { label: "Ingesta & Gobierno", items: ["Ingesta", "Calidad y gobierno"] },
+    { label: "Almacén", items: ["Data Warehouse / Lakehouse"] },
+    { label: "Modelos", items: ["ML", "Data Science"] },
+    { label: "Salidas", items: ["BI", "NLP", "Automatización", "Alertas"] },
+  ];
+  return (
+    <div className="md:hidden flex flex-col gap-4">
+      {pasos.map((paso, i) => (
+        <motion.div
+          key={paso.label}
+          initial={{ opacity: 0, x: -20 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: i * 0.1 }}
+          className="rounded-xl border border-slate-200 bg-white/60 p-4"
+        >
+          <p className="font-mono text-[10px] uppercase tracking-wider text-[#0EA5E9] mb-2">
+            {String(i + 1).padStart(2, "0")} — {paso.label}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {paso.items.map((item) => (
+              <span
+                key={item}
+                className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700"
+              >
+                {item}
+              </span>
+            ))}
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
-/*  Íconos de servicio — trazo lineal de 1.5px, heredan color vía       */
-/*  currentColor para reaccionar al hover de cada card sin lógica       */
-/*  adicional. Un ícono por disciplina, no genéricos de librería.       */
+/*  Íconos de servicio                                                */
 /* ------------------------------------------------------------------ */
 
 const ICONOS_SERVICIO: Record<string, (props: { className?: string }) => React.ReactElement> = {
   ING: ({ className }) => (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <path
-        d="M3 7h6l2 3h8M3 17h6l2-3h8"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M3 7h6l2 3h8M3 17h6l2-3h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       <circle cx="20" cy="7" r="1.6" stroke="currentColor" strokeWidth="1.5" />
       <circle cx="20" cy="17" r="1.6" stroke="currentColor" strokeWidth="1.5" />
     </svg>
   ),
   GOB: ({ className }) => (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <path
-        d="M12 3l7 3v5c0 5-3.2 8-7 10-3.8-2-7-5-7-10V6l7-3z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M9 12l2 2 4-4.5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M12 3l7 3v5c0 5-3.2 8-7 10-3.8-2-7-5-7-10V6l7-3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M9 12l2 2 4-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
   ML: ({ className }) => (
@@ -418,11 +421,7 @@ const ICONOS_SERVICIO: Record<string, (props: { className?: string }) => React.R
       <circle cx="12" cy="12" r="1.8" stroke="currentColor" strokeWidth="1.5" />
       <circle cx="19" cy="7" r="1.6" stroke="currentColor" strokeWidth="1.5" />
       <circle cx="19" cy="17" r="1.6" stroke="currentColor" strokeWidth="1.5" />
-      <path
-        d="M6.4 7.1L10.6 11M6.4 16.9L10.6 13M13.6 11l4-3.2M13.6 13l4 3.2"
-        stroke="currentColor"
-        strokeWidth="1.3"
-      />
+      <path d="M6.4 7.1L10.6 11M6.4 16.9L10.6 13M13.6 11l4-3.2M13.6 13l4 3.2" stroke="currentColor" strokeWidth="1.3" />
     </svg>
   ),
   BI: ({ className }) => (
@@ -431,37 +430,15 @@ const ICONOS_SERVICIO: Record<string, (props: { className?: string }) => React.R
       <path d="M3 20h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   ),
-  NLP: ({ className }) => (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <path
-        d="M4 5h16v10H9l-4 4v-4H4V5z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-      <path d="M8 9.5h8M8 12.5h5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-    </svg>
-  ),
   AUT: ({ className }) => (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <path
-        d="M12 4v3M12 17v3M4 12h3M17 12h3M6.3 6.3l2.1 2.1M15.6 15.6l2.1 2.1M6.3 17.7l2.1-2.1M15.6 8.4l2.1-2.1"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
+      <path d="M12 4v3M12 17v3M4 12h3M17 12h3M6.3 6.3l2.1 2.1M15.6 15.6l2.1 2.1M6.3 17.7l2.1-2.1M15.6 8.4l2.1-2.1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       <circle cx="12" cy="12" r="3.2" stroke="currentColor" strokeWidth="1.5" />
     </svg>
   ),
   EST: ({ className }) => (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <path
-        d="M4 19l5-5 4 3 7-9"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M4 19l5-5 4 3 7-9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M15 8h5v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
@@ -472,7 +449,83 @@ function iconoClave(folio: string): string {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Sección de contacto                                                */
+/*  Contador animado de métricas                                      */
+/* ------------------------------------------------------------------ */
+
+function ContadorMetrica({ valor, sufijo }: { valor: number; sufijo: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-80px" });
+  const motionValue = useMotionValue(0);
+  const springValue = useSpring(motionValue, { damping: 30, stiffness: 100 });
+  const [display, setDisplay] = useState("0");
+
+  useEffect(() => {
+    if (isInView) {
+      motionValue.set(valor);
+    }
+  }, [isInView, valor, motionValue]);
+
+  useEffect(() => {
+    const unsubscribe = springValue.on("change", (latest) => {
+      if (Number.isInteger(valor)) {
+        setDisplay(Math.floor(latest).toString());
+      } else {
+        setDisplay(latest.toFixed(1));
+      }
+    });
+    return unsubscribe;
+  }, [springValue, valor]);
+
+  return (
+    <span ref={ref} className="font-serif text-4xl font-medium tabular-nums text-[#0EA5E9] md:text-5xl">
+      {display}{sufijo}
+    </span>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Testimonios                                                       */
+/* ------------------------------------------------------------------ */
+
+function TestimoniosSection() {
+  return (
+    <section className="relative z-10 border-b border-[#E2E8F0] bg-white px-6 py-24">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-3 font-mono text-xs uppercase tracking-wider text-slate-400">
+          DG-08 / TESTIMONIOS
+        </div>
+        <h2 className="mb-14 max-w-2xl font-serif text-4xl font-medium tracking-tight md:text-5xl">
+          Lo que dicen nuestros clientes
+        </h2>
+        <div className="grid gap-6 md:grid-cols-3">
+          {TESTIMONIOS.map((t, i) => (
+            <motion.div
+              key={t.nombre}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.5, delay: i * 0.1 }}
+              className="relative rounded-xl border border-slate-100 bg-[#F8FAFC] p-6"
+            >
+              <SelloValidacion texto="CLIENTE" />
+              <svg className="mb-4 h-6 w-6 text-[#0EA5E9]/40" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+              </svg>
+              <p className="text-sm leading-relaxed text-slate-600">{t.texto}</p>
+              <div className="mt-6 border-t border-slate-200 pt-4">
+                <p className="font-medium text-slate-900">{t.nombre}</p>
+                <p className="text-xs text-slate-500">{t.cargo}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Sección de contacto — con validación y a11y                       */
 /* ------------------------------------------------------------------ */
 
 const CAMPOS_FORM = [
@@ -480,12 +533,7 @@ const CAMPOS_FORM = [
   { id: "apellido", label: "Apellido", type: "text", autoComplete: "family-name" },
   { id: "email", label: "E-mail", type: "email", autoComplete: "email" },
   { id: "telefono", label: "Teléfono", type: "tel", autoComplete: "tel" },
-  {
-    id: "empresa",
-    label: "Nombre de la empresa",
-    type: "text",
-    autoComplete: "organization",
-  },
+  { id: "empresa", label: "Nombre de la empresa", type: "text", autoComplete: "organization" },
   { id: "asunto", label: "Asunto", type: "text", autoComplete: "off" },
 ];
 
@@ -493,6 +541,27 @@ function ContactSection() {
   const [enviado, setEnviado] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState("");
+  const [errores, setErrores] = useState<Record<string, string>>({});
+  const formRef = useRef<HTMLFormElement>(null);
+
+  function validarCampo(id: string, value: string): string {
+    if (!value.trim()) return "Este campo es obligatorio";
+    if (id === "email") {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(value)) return "Ingresa un email válido";
+    }
+    if (id === "telefono") {
+      const telRegex = /^[+]?[\d\s-]{7,}$/;
+      if (!telRegex.test(value)) return "Ingresa un teléfono válido";
+    }
+    return "";
+  }
+
+  function handleBlur(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
+    const { id, value } = e.target;
+    const err = validarCampo(id, value);
+    setErrores((prev) => ({ ...prev, [id]: err }));
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -500,7 +569,21 @@ function ContactSection() {
     setError("");
 
     const form = e.currentTarget;
-    const data = Object.fromEntries(new FormData(form).entries());
+    const data = Object.fromEntries(new FormData(form).entries()) as Record<string, string>;
+
+    const nuevosErrores: Record<string, string> = {};
+    CAMPOS_FORM.forEach((c) => {
+      const err = validarCampo(c.id, data[c.id] as string);
+      if (err) nuevosErrores[c.id] = err;
+    });
+    const errMensaje = validarCampo("mensaje", data.mensaje as string);
+    if (errMensaje) nuevosErrores.mensaje = errMensaje;
+
+    if (Object.keys(nuevosErrores).length > 0) {
+      setErrores(nuevosErrores);
+      setEnviando(false);
+      return;
+    }
 
     try {
       const res = await fetch("/api/contacto", {
@@ -508,11 +591,10 @@ function ContactSection() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-
       if (!res.ok) throw new Error("No se pudo enviar");
-
       setEnviado(true);
       form.reset();
+      setErrores({});
     } catch {
       setError(
         "Algo salió mal al enviar tu mensaje. Intenta de nuevo o escríbenos directo por email."
@@ -525,38 +607,39 @@ function ContactSection() {
   return (
     <section
       id="contacto"
-      className="relative z-10 border-b border-[#2A3530] px-6 py-24 md:py-32"
+      className="relative z-10 border-b border-[#E2E8F0] px-6 py-24 md:py-32"
     >
       <div className="mx-auto max-w-6xl">
-        <div className="mb-3 font-mono text-xs uppercase tracking-wider text-[#D97A4D]">
+        <div className="mb-3 font-mono text-xs uppercase tracking-wider text-slate-400">
           DG-09 / CONTACTO
         </div>
-        <div className="mb-14 flex flex-col gap-4 border-b border-[#2A3530] pb-10 md:flex-row md:items-end md:justify-between">
-          <h2 className="font-serif text-4xl font-medium tracking-tight text-[#F5F1E8] md:text-5xl">
+        <div className="mb-14 flex flex-col gap-4 border-b border-[#E2E8F0] pb-10 md:flex-row md:items-end md:justify-between">
+          <h2 className="font-serif text-4xl font-medium tracking-tight text-slate-900 md:text-5xl">
             Solicita una evaluación
             <br className="hidden md:block" /> de tus datos
           </h2>
-          <p className="max-w-sm text-sm text-[#8A9690]">
+          <p className="max-w-sm text-sm text-slate-500">
             Cuéntanos qué proceso o reporte hoy te quita tiempo. Respondemos
             dentro de un día hábil con una propuesta concreta.
           </p>
         </div>
 
         <div className="grid gap-16 md:grid-cols-[1.3fr_1fr]">
-          {/* Formulario */}
           <motion.form
+            ref={formRef}
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.5 }}
             onSubmit={handleSubmit}
             className="grid grid-cols-1 gap-x-6 gap-y-7 sm:grid-cols-2"
+            noValidate
           >
             {CAMPOS_FORM.map((campo) => (
               <div key={campo.id} className="flex flex-col gap-2">
                 <label
                   htmlFor={campo.id}
-                  className="font-mono text-xs uppercase tracking-wider text-[#8A9690]"
+                  className="font-mono text-xs uppercase tracking-wider text-slate-500"
                 >
                   {campo.label}*
                 </label>
@@ -566,15 +649,23 @@ function ContactSection() {
                   type={campo.type}
                   autoComplete={campo.autoComplete}
                   required
-                  className="border-b border-[#2A3530] bg-transparent py-2.5 text-[#F5F1E8] placeholder:text-[#8A9690]/40 focus:border-[#3D9B7C] focus:outline-none"
+                  aria-invalid={!!errores[campo.id]}
+                  aria-describedby={errores[campo.id] ? `err-${campo.id}` : undefined}
+                  onBlur={handleBlur}
+                  className="border-b border-[#E2E8F0] bg-transparent py-2.5 text-slate-900 placeholder:text-slate-400/60 focus:border-[#0EA5E9] focus:outline-none"
                 />
+                {errores[campo.id] && (
+                  <p id={`err-${campo.id}`} className="text-xs text-red-500">
+                    {errores[campo.id]}
+                  </p>
+                )}
               </div>
             ))}
 
             <div className="flex flex-col gap-2 sm:col-span-2">
               <label
                 htmlFor="mensaje"
-                className="font-mono text-xs uppercase tracking-wider text-[#8A9690]"
+                className="font-mono text-xs uppercase tracking-wider text-slate-500"
               >
                 Mensaje / consulta*
               </label>
@@ -583,8 +674,16 @@ function ContactSection() {
                 name="mensaje"
                 required
                 rows={4}
-                className="resize-none border-b border-[#2A3530] bg-transparent py-2.5 text-[#F5F1E8] placeholder:text-[#8A9690]/40 focus:border-[#3D9B7C] focus:outline-none"
+                aria-invalid={!!errores.mensaje}
+                aria-describedby={errores.mensaje ? "err-mensaje" : undefined}
+                onBlur={handleBlur}
+                className="resize-none border-b border-[#E2E8F0] bg-transparent py-2.5 text-slate-900 placeholder:text-slate-400/60 focus:border-[#0EA5E9] focus:outline-none"
               />
+              {errores.mensaje && (
+                <p id="err-mensaje" className="text-xs text-red-500">
+                  {errores.mensaje}
+                </p>
+              )}
             </div>
 
             <div className="sm:col-span-2">
@@ -593,7 +692,7 @@ function ContactSection() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 disabled={enviando || enviado}
-                className="bg-[#3D9B7C] px-9 py-3.5 font-mono text-sm uppercase tracking-wider text-[#0E1412] transition-colors hover:bg-[#2E7A60] disabled:opacity-50"
+                className="bg-[#0EA5E9] px-9 py-3.5 font-mono text-sm uppercase tracking-wider text-white transition-colors hover:bg-[#0284C7] disabled:opacity-50"
               >
                 {enviado
                   ? "Mensaje enviado"
@@ -601,60 +700,62 @@ function ContactSection() {
                     ? "Enviando..."
                     : "Enviar consulta"}
               </motion.button>
+
+              <div aria-live="polite" className="sr-only">
+                {enviado && "Mensaje enviado correctamente. Un especialista te contactará pronto."}
+                {error && error}
+              </div>
+
               {enviado && (
-                <p className="mt-3 text-sm text-[#3D9B7C]">
+                <p className="mt-3 text-sm text-[#0EA5E9]">
                   Gracias — un especialista te contactará pronto.
                 </p>
               )}
-              {error && <p className="mt-3 text-sm text-[#D97A4D]">{error}</p>}
+              {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
             </div>
           </motion.form>
 
-          {/* Datos de contacto */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="flex flex-col gap-8 border-t border-[#2A3530] pt-8 md:border-t-0 md:border-l md:pl-12 md:pt-0"
+            className="flex flex-col gap-8 border-t border-[#E2E8F0] pt-8 md:border-t-0 md:border-l md:pl-12 md:pt-0"
           >
             <div>
-              <span className="font-mono text-xs uppercase tracking-wider text-[#8A9690]">
+              <span className="font-mono text-xs uppercase tracking-wider text-slate-500">
                 Oficinas
               </span>
-              <p className="mt-2 text-lg text-[#F5F1E8]">Santiago, Chile</p>
+              <p className="mt-2 text-lg text-slate-900">Santiago, Chile</p>
             </div>
-
             <div>
-              <span className="font-mono text-xs uppercase tracking-wider text-[#8A9690]">
+              <span className="font-mono text-xs uppercase tracking-wider text-slate-500">
                 Email
               </span>
-              <p className="mt-2 text-lg text-[#F5F1E8]">
+              <p className="mt-2 text-lg text-slate-900">
                 <a
                   href="mailto:contacto@datagob.cl"
-                  className="transition-colors hover:text-[#3D9B7C]"
+                  className="transition-colors hover:text-[#0284C7]"
                 >
                   contacto@datagob.cl
                 </a>
               </p>
             </div>
-
             <div>
-              <span className="font-mono text-xs uppercase tracking-wider text-[#8A9690]">
+              <span className="font-mono text-xs uppercase tracking-wider text-slate-500">
                 Teléfono
               </span>
-              <p className="mt-2 text-lg text-[#F5F1E8]">
+              <p className="mt-2 text-lg text-slate-900">
                 <a
                   href="tel:+56229402358"
-                  className="transition-colors hover:text-[#3D9B7C]"
+                  className="transition-colors hover:text-[#0284C7]"
                 >
                   +56 2 2940 2358
                 </a>
               </p>
             </div>
-
-            <div className="mt-auto border-t border-[#2A3530] pt-6">
-              <p className="font-mono text-xs uppercase tracking-wider text-[#8A9690]">
+            <div className="mt-auto border-t border-[#E2E8F0] pt-6">
+              <p className="font-mono text-xs uppercase tracking-wider text-slate-500">
                 Plazo de respuesta: 1 día hábil
               </p>
             </div>
@@ -665,440 +766,505 @@ function ContactSection() {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/*  Header — con scroll transform y focus trap móvil                  */
+/* ------------------------------------------------------------------ */
 
+function Header() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const lastFocusedElement = useRef<HTMLElement | null>(null);
 
+  const { scrollYProgress } = useScroll();
+  const headerBackground = useTransform(
+    scrollYProgress,
+    [0, 0.02],
+    ["rgba(255,255,255,0)", "rgba(255,255,255,0.95)"]
+  );
+  const headerBorder = useTransform(
+    scrollYProgress,
+    [0, 0.02],
+    ["rgba(226,232,240,0)", "rgba(226,232,240,1)"]
+  );
+  const headerShadow = useTransform(
+    scrollYProgress,
+    [0, 0.02],
+    ["0 0 0 rgba(0,0,0,0)", "0 4px 20px rgba(0,0,0,0.05)"]
+  );
 
-export default function Home() {
+  /* Focus trap para menú móvil */
+  useEffect(() => {
+    if (!menuOpen) return;
+    lastFocusedElement.current = document.activeElement as HTMLElement;
+    const menu = menuRef.current;
+    if (!menu) return;
+
+    const focusable = menu.querySelectorAll<HTMLElement>(
+      'a[href], button, textarea, input[type="text"], input[type="email"], input[type="tel"], select'
+    );
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    first?.focus();
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setMenuOpen(false);
+        return;
+      }
+      if (e.key !== "Tab") return;
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last?.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
+        }
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      lastFocusedElement.current?.focus();
+    };
+  }, [menuOpen]);
+
+  const navItems = [
+    { label: "Servicios", href: "#servicios" },
+    { label: "Cómo trabajamos", href: "#proceso" },
+    { label: "Resultados", href: "#metricas" },
+    { label: "Contacto", href: "#contacto" },
+  ];
+
+  return (
+    <motion.header
+      initial={{ y: -80, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.6 }}
+      style={{
+        backgroundColor: headerBackground,
+        borderBottomColor: headerBorder,
+        boxShadow: headerShadow,
+      }}
+      className="fixed top-0 left-0 right-0 z-50 border-b backdrop-blur-xl"
+    >
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+        <a href="#" className="group flex items-center gap-3">
+          <motion.img
+            src="/logo_datagob.png"
+            alt="DataGob"
+            whileHover={{ rotate: 8, scale: 1.05 }}
+            transition={{ duration: 0.4 }}
+            className="h-10 w-10 rounded-xl object-contain"
+          />
+          <div className="flex flex-col leading-none">
+            <span className="font-serif text-xl font-semibold tracking-tight text-slate-900">
+              DATA<span className="text-[#0EA5E9]">GOB</span>
+            </span>
+            <span className="text-[10px] uppercase tracking-[0.35em] text-slate-500">
+              Data Engineering · AI
+            </span>
+          </div>
+        </a>
+
+        <nav className="hidden items-center gap-8 md:flex" aria-label="Navegación principal">
+          {navItems.map((item) => (
+            <a
+              key={item.label}
+              href={item.href}
+              className="group relative font-mono text-[11px] uppercase tracking-[0.22em] text-slate-500 transition-colors hover:text-[#0EA5E9]"
+            >
+              {item.label}
+              <span className="absolute -bottom-2 left-0 h-px w-0 bg-[#0EA5E9] transition-all duration-300 group-hover:w-full" />
+            </a>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-3">
+          <motion.a
+            href="#contacto"
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.98 }}
+            className="hidden md:inline-flex rounded-full bg-[#0EA5E9] px-4 py-2 font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-white transition-all hover:bg-[#0284C7]"
+          >
+            Agenda una consultoría
+          </motion.a>
+
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-menu"
+            aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-900 md:hidden"
+          >
+            {menuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            ref={menuRef}
+            id="mobile-menu"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.25 }}
+            className="border-t border-slate-200 bg-white/95 backdrop-blur-xl shadow-lg md:hidden"
+          >
+            <div className="flex flex-col px-6 py-6">
+              {navItems.map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  onClick={() => setMenuOpen(false)}
+                  className="border-b border-white/5 py-4 font-mono text-sm uppercase tracking-[0.18em] text-slate-500 transition hover:text-slate-900"
+                >
+                  {item.label}
+                </a>
+              ))}
+              <a
+                href="#contacto"
+                onClick={() => setMenuOpen(false)}
+                className="mt-6 rounded-full bg-[#0EA5E9] py-3 text-center font-mono text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-[#0284C7]"
+              >
+                Agenda una consultoría
+              </a>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.header>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Hero                                                              */
+/* ------------------------------------------------------------------ */
+
+function HeroSection() {
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: heroRef,
     offset: ["start start", "end start"],
-
   });
   const heroOpacity = useTransform(scrollYProgress, [0, 1], [1, 0.4]);
   const heroY = useTransform(scrollYProgress, [0, 1], [0, 60]);
-  const headerBackground = useTransform(
-    scrollYProgress,
-    [0, 0.2],
-    ["rgba(16,23,21,0)", "rgba(16,23,21,.85)"]
-  );
-  const [menuOpen, setMenuOpen] = useState(false);
-  const headerPadding = useTransform(
-    scrollYProgress,
-    [0, 0.2],
-    [24, 14]
-  );
-
-  const headerWidth = useTransform(
-    scrollYProgress,
-    [0, 0.2],
-    ["100%", "92%"]
-  );
-
-  const headerRadius = useTransform(
-    scrollYProgress,
-    [0, 0.2],
-    [0, 20]
-  );
 
   return (
-    <main className="bg-[#0E1412] text-[#F5F1E8]">
-      {/* ---------------------------------------------------------- */}
-      {/* Header — membrete                                            */}
-      {/* ---------------------------------------------------------- */}
-      <motion.header
-        initial={{ y: -80, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6 }}
-        className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[#101715]/80 backdrop-blur-xl"
-      >
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-
-          {/* Logo */}
-          <a href="#" className="group flex items-center gap-3">
-
-            <motion.div
-              whileHover={{ rotate: 180 }}
-              transition={{ duration: 0.6 }}
-              className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[#3D9B7C]/30 bg-[#3D9B7C]/10"
-            >
-              <div className="absolute h-1.5 w-1.5 rounded-full bg-[#3D9B7C]" />
-              <div className="absolute left-2 top-2 h-1.5 w-1.5 rounded-full bg-[#3D9B7C]" />
-              <div className="absolute right-2 bottom-2 h-1.5 w-1.5 rounded-full bg-[#3D9B7C]" />
-
-              <div className="absolute h-px w-5 rotate-45 bg-[#3D9B7C]/70" />
-              <div className="absolute h-px w-5 -rotate-45 bg-[#3D9B7C]/70" />
-            </motion.div>
-
-            <div className="flex flex-col leading-none">
-              <span className="font-serif text-xl font-semibold tracking-tight text-white">
-                DATA<span className="text-[#3D9B7C]">GOB</span>
-              </span>
-
-              <span className="text-[10px] uppercase tracking-[0.35em] text-[#8A9690]">
-                Data Engineering · AI
-              </span>
-            </div>
-
-          </a>
-
-          {/* Navegación */}
-          <nav className="hidden items-center gap-8 md:flex">
-            {[
-              "Servicios",
-              "Cómo trabajamos",
-              "Resultados",
-              "Contacto",
-            ].map((item, index) => (
-              <a
-                key={index}
-                href={
-                  item === "Servicios"
-                    ? "#servicios"
-                    : item === "Cómo trabajamos"
-                      ? "#proceso"
-                      : item === "Resultados"
-                        ? "#metricas"
-                        : "#contacto"
-                }
-                className="group relative font-mono text-[11px] uppercase tracking-[0.22em] text-[#9BA8A2] transition-colors hover:text-white"
-              >
-                {item}
-
-                <span className="absolute -bottom-2 left-0 h-px w-0 bg-[#3D9B7C] transition-all duration-300 group-hover:w-full" />
-              </a>
-            ))}
-          </nav>
-
-          {/* CTA */}
-          <div className="flex items-center gap-3">
-            {/* Botón escritorio */}
+    <section
+      ref={heroRef}
+      className="relative z-10 border-b border-[#E2E8F0] px-6 pb-20 pt-16 md:pb-28 md:pt-20"
+    >
+      <motion.div style={{ opacity: heroOpacity, y: heroY }} className="mx-auto max-w-6xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+        >
+          <p className="mb-5 font-mono text-xs uppercase tracking-wider text-slate-400">
+            Ingeniería de datos, BI, ML y automatización — Santiago, Chile
+          </p>
+          <h1 className="max-w-3xl font-serif text-4xl font-medium leading-[1.15] tracking-tight md:text-6xl">
+            Impulsa tu empresa basado en datos e inteligencia artificial.
+          </h1>
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-500">
+            Convierte tus datos en una ventaja competitiva mediante
+            soluciones de Ingeniería de Datos,Analítica e Inteligencia Artificial.
+          </p>
+          <div className="mt-10 flex flex-wrap gap-4">
             <motion.a
               href="#contacto"
-              whileHover={{ scale: 1.04 }}
+              whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="hidden md:inline-flex rounded-full bg-[#3D9B7C] px-4 py-2 font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-white transition-all hover:bg-[#46b18d]"
+              className="bg-[#0EA5E9] px-7 py-3.5 font-mono text-sm uppercase tracking-wider text-white shadow-[0_0_28px_-6px_rgba(14,165,233,0.45)] transition-all hover:bg-[#0284C7] hover:shadow-[0_0_36px_-4px_rgba(14,165,233,0.55)]"
             >
-              Agenda una consultoría
+              Solicitar evaluación
             </motion.a>
-
-            {/* Botón hamburguesa */}
-            <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white md:hidden"
-              aria-label="Abrir menú"
+            <a
+              href="#servicios"
+              className="border border-slate-300 px-7 py-3.5 font-mono text-sm uppercase tracking-wider transition-colors hover:border-[#0EA5E9] hover:text-[#0284C7]"
             >
-              {menuOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
+              Ver servicios
+            </a>
           </div>
-
-        </div>
-        <AnimatePresence>
-          {menuOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.25 }}
-              className="border-t border-white/10 bg-[#101715]/95 backdrop-blur-xl md:hidden"
-            >
-              <div className="flex flex-col px-6 py-6">
-
-                {[
-                  { label: "Servicios", href: "#servicios" },
-                  { label: "Cómo trabajamos", href: "#proceso" },
-                  { label: "Resultados", href: "#metricas" },
-                  { label: "Contacto", href: "#contacto" },
-                ].map((item) => (
-                  <a
-                    key={item.label}
-                    href={item.href}
-                    onClick={() => setMenuOpen(false)}
-                    className="border-b border-white/5 py-4 font-mono text-sm uppercase tracking-[0.18em] text-[#B7C4BE] transition hover:text-white"
-                  >
-                    {item.label}
-                  </a>
-                ))}
-
-                <a
-                  href="#contacto"
-                  onClick={() => setMenuOpen(false)}
-                  className="mt-6 rounded-full bg-[#3D9B7C] py-3 text-center font-mono text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-[#46b18d]"
-                >
-                  Agenda una consultoría
-                </a>
-
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.header>
-
-      {/* ---------------------------------------------------------- */}
-      {/* Hero — tesis directa + diagrama de linaje                    */}
-      {/* ---------------------------------------------------------- */}
-      <section
-        ref={heroRef}
-        className="relative z-10 border-b border-[#2A3530] px-6 pb-20 pt-16 md:pb-28 md:pt-20"
-      >
-        <motion.div style={{ opacity: heroOpacity, y: heroY }} className="mx-auto max-w-6xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-          >
-            <p className="mb-5 font-mono text-xs uppercase tracking-wider text-[#D97A4D]">
-              Ingeniería de datos, BI, ML y automatización — Santiago, Chile
-            </p>
-
-            <h1 className="max-w-3xl font-serif text-4xl font-medium leading-[1.15] tracking-tight md:text-6xl">
-              Impulsa tu empresa con Ingeniería de Datos, Analítica Avanzada y Automatización Inteligente.
-            </h1>
-
-            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[#8A9690]">
-              Tus datos están dispersos en sistemas que no se hablan entre sí,
-              en formatos inconsistentes y procesos repetitivos.
-            </p>
-
-            <div className="mt-10 flex flex-wrap gap-4">
-              <motion.a
-                href="#contacto"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="bg-[#3D9B7C] px-7 py-3.5 font-mono text-sm uppercase tracking-wider text-[#0E1412] shadow-[0_0_28px_-6px_rgba(61,155,124,0.55)] transition-all hover:bg-[#2E7A60] hover:shadow-[0_0_36px_-4px_rgba(61,155,124,0.7)]"
-              >
-                Solicitar evaluación
-              </motion.a>
-              <a
-                href="#servicios"
-                className="border border-[#F5F1E8]/25 px-7 py-3.5 font-mono text-sm uppercase tracking-wider transition-colors hover:border-[#3D9B7C] hover:text-[#3D9B7C]"
-              >
-                Ver servicios
-              </a>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="relative mt-20 overflow-hidden rounded-2xl border border-[#3D9B7C]/15 bg-gradient-to-br from-[#111815] via-[#141B18] to-[#0F1513] shadow-[0_20px_80px_-30px_rgba(61,155,124,0.35)]"
-          >
-            {/* Glow */}
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#3D9B7C] to-transparent opacity-60" />
-
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/5 px-8 py-5">
-              <div>
-                <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-[#3D9B7C]">
-                  Data Pipeline
-                </p>
-
-                <h3 className="mt-2 text-lg font-semibold text-[#F5F1E8]">
-                  Flujo de datos end-to-end
-                </h3>
-
-                <p className="mt-1 text-sm text-[#8A9690]">
-                  Desde las fuentes de datos hasta dashboards y analítica avanzada.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 rounded-full border border-[#3D9B7C]/20 bg-[#3D9B7C]/10 px-4 py-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#3D9B7C]" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#3D9B7C]" />
-                </span>
-
-              </div>
-            </div>
-
-            {/* Diagram */}
-            <div className="relative p-8">
-              <DiagramaFlujo />
-            </div>
-          </motion.div>
         </motion.div>
-      </section>
 
-      {/* ---------------------------------------------------------- */}
-      {/* Servicios                                                    */}
-      {/* ---------------------------------------------------------- */}
-      <section id="servicios" className="relative z-10 border-b border-[#2A3530] px-6 py-24">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-3 flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-[#D97A4D]">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#D97A4D] opacity-50" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#D97A4D]" />
-            </span>
-            DG-02 / SERVICIOS
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8, delay: 0.3 }}
+          className="relative mt-20 overflow-hidden rounded-2xl border border-[#0EA5E9]/25 bg-gradient-to-br from-[#F0F9FF] via-[#E0F2FE] to-[#DBEAFE] shadow-[0_20px_80px_-20px_rgba(14,165,233,0.25)]"
+        >
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#38BDF8] to-transparent opacity-40" />
+          <div className="flex items-center justify-between border-b border-slate-200 px-8 py-5">
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-[#0284C7]">
+                Data Pipeline
+              </p>
+              <h3 className="mt-2 text-lg font-semibold text-slate-900">
+                Flujo de datos end-to-end
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Desde las fuentes de datos hasta dashboards y analítica avanzada.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 rounded-full border border-[#0EA5E9]/20 bg-[#0EA5E9]/10 px-4 py-2">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#0EA5E9]" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-[#0EA5E9]" />
+              </span>
+              <span className="font-mono text-[10px] uppercase tracking-wider text-[#0EA5E9]">
+                Activo
+              </span>
+            </div>
           </div>
-          <div className="mb-16 flex flex-col gap-4 border-b border-[#2A3530] pb-10 md:flex-row md:items-end md:justify-between">
-            <h2 className="font-serif text-4xl font-medium tracking-tight md:text-5xl">
-              Distintos servicios, para potenciar
-            </h2>
-            <p className="max-w-sm text-sm text-[#8A9690]">
-              Comienza por el servicio que genere mayor
-              impacto y expande tu plataforma de datos a medida que evolucionan las necesidades de tu organización..
-            </p>
+          <div className="relative p-8">
+            <DiagramaFlujoDesktop />
+            <DiagramaFlujoMobile />
           </div>
-          {/* Cambia grid-cols-3 → grid-cols-2, y elimina la lógica de esML para col-span */}
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            {SERVICIOS.map((s, i) => {
-              const clave = iconoClave(s.folio);
-              const Icono = ICONOS_SERVICIO[clave];
-              const esAmbar = clave === "BI" || clave === "AUT" || clave === "EST";
+        </motion.div>
+      </motion.div>
+    </section>
+  );
+}
 
-              return (
-                <motion.div
-                  key={s.folio}
-                  initial={{ opacity: 0, y: 16 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-80px" }}
-                  transition={{ duration: 0.45, delay: (i % 2) * 0.07 }}
-                  className={`group relative overflow-hidden rounded-xl border bg-[#111916] p-6 transition-all duration-300
-          ${esAmbar
-                      ? "border-[#1E2B26] hover:border-[#D97A4D]/30"
-                      : "border-[#1E2B26] hover:border-[#3D9B7C]/30"
-                    }
-          hover:-translate-y-0.5`}
-                >
-                  {/* barra de acento lateral */}
-                  <div className={`absolute left-0 top-4 bottom-4 w-0.5 rounded-r-sm transition-opacity duration-300
-          ${esAmbar ? "bg-[#D97A4D]" : "bg-[#3D9B7C]"}
-          opacity-40 group-hover:opacity-100`}
-                  />
+/* ------------------------------------------------------------------ */
+/*  Servicios                                                         */
+/* ------------------------------------------------------------------ */
 
-                  {/* glow de esquina */}
-                  <div className={`pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full blur-3xl
-          transition-opacity duration-500 opacity-0 group-hover:opacity-[0.09]
-          ${esAmbar ? "bg-[#D97A4D]" : "bg-[#3D9B7C]"}`}
-                  />
-
-                  {/* folio en esquina */}
-                  <span className="absolute right-4 top-3.5 font-mono text-[9px] tracking-[0.15em] text-[#2E4039] transition-colors duration-300 group-hover:text-[#3D9B7C]/50">
-                    {s.folio}
-                  </span>
-
-                  {/* ícono */}
-                  <div className={`mb-5 flex h-9 w-9 items-center justify-center rounded-lg border transition-all duration-300
-          ${esAmbar
-                      ? "border-[#1E2B26] text-[#8A9690] group-hover:border-[#D97A4D]/40 group-hover:bg-[#D97A4D]/05 group-hover:text-[#D97A4D]"
-                      : "border-[#1E2B26] text-[#8A9690] group-hover:border-[#3D9B7C]/40 group-hover:bg-[#3D9B7C]/05 group-hover:text-[#3D9B7C]"
-                    }`}
-                  >
-                    {Icono ? <Icono className="h-4 w-4" /> : null}
-                  </div>
-
-                  {/* tag + título */}
-                  <p className={`font-mono text-[10px] uppercase tracking-wider
-          ${esAmbar ? "text-[#D97A4D]" : "text-[#3D9B7C]"}`}>
-                    {s.tag}
-                  </p>
-                  <h3 className="mt-1.5 font-serif text-[17px] font-medium leading-snug text-[#F5F1E8]">
-                    {s.nombre}
-                  </h3>
-                  <p className="mt-2.5 text-[12px] leading-relaxed text-[#6A7A74] transition-colors duration-300 group-hover:text-[#8A9690]">
-                    {s.descripcion}
-                  </p>
-
-                  {/* pills de tecnología */}
-                  <div className="mt-4 flex flex-wrap gap-1.5">
-                    {(TECH_PILLS[clave] ?? []).map((t) => (
-                      <span key={t} className="rounded border border-[#1E2B26] px-2 py-0.5 font-mono text-[9.5px] tracking-wide text-[#4A5A54] transition-colors duration-300 group-hover:border-[#2A3D34] group-hover:text-[#6A8A7A]">
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-
-                  {/* divisor animado */}
-                  <div className={`mt-5 h-px w-6 transition-all duration-300 group-hover:w-12
-          ${esAmbar ? "bg-[#1E2B26] group-hover:bg-[#D97A4D]" : "bg-[#1E2B26] group-hover:bg-[#3D9B7C]"}`}
-                  />
-                </motion.div>
-              );
-            })}
-          </div>
+function ServiciosSection() {
+  return (
+    <section id="servicios" className="relative z-10 border-b border-[#E2E8F0] px-6 py-24">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-3 flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-slate-400">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#2563EB] opacity-50" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
+          </span>
+          DG-02 / SERVICIOS
         </div>
-      </section>
-
-      {/* ---------------------------------------------------------- */}
-      {/* Cómo trabajamos — proceso en cuatro etapas                   */}
-      {/* ---------------------------------------------------------- */}
-      <section id="proceso" className="relative z-10 border-b border-[#2A3530] px-6 py-24">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-3 font-mono text-xs uppercase tracking-wider text-[#D97A4D]">
-            DG-05 / METODOLOGÍA
-          </div>
-          <h2 className="mb-14 max-w-2xl font-serif text-4xl font-medium tracking-tight md:text-5xl">
-            Cómo trabajamos
+        <div className="mb-16 flex flex-col gap-4 border-b border-[#E2E8F0] pb-10 md:flex-row md:items-end md:justify-between">
+          <h2 className="font-serif text-4xl font-medium tracking-tight md:text-5xl">
+            Distintos servicios, para potenciar
           </h2>
+          <p className="max-w-sm text-sm text-slate-500">
+            Comienza por el servicio que genere mayor impacto y expande tu plataforma de datos a medida que evolucionan las necesidades de tu organización.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {SERVICIOS.map((s, i) => {
+            const clave = iconoClave(s.folio);
+            const Icono = ICONOS_SERVICIO[clave];
+            const usaColorSecundario = clave === "BI" || clave === "AUT" || clave === "EST";
+            const color = usaColorSecundario ? THEME.secondary : THEME.primary;
 
-          <div className="grid gap-0 md:grid-cols-4">
-            {PROCESO.map((p, i) => (
+            return (
               <motion.div
-                key={p.etapa}
-                initial={{ opacity: 0, y: 14 }}
+                key={s.folio}
+                initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-80px" }}
-                transition={{ duration: 0.45, delay: i * 0.1 }}
-                className={`border-t border-[#3D9B7C]/60 py-6 pr-6 ${i > 0 ? "md:border-l md:border-t-0 md:border-[#2A3530] md:pl-6" : ""
-                  }`}
+                transition={{ duration: 0.45, delay: (i % 2) * 0.07 }}
+                className={`group relative overflow-hidden rounded-xl border bg-white p-6 transition-all duration-300
+                  ${usaColorSecundario ? "border-slate-100 hover:border-[#2563EB]/30" : "border-slate-100 hover:border-[#0EA5E9]/40"}
+                  hover:-translate-y-0.5`}
               >
-                <span className="font-mono text-xs text-[#8A9690]">
-                  {String(i + 1).padStart(2, "0")}
+                <div className={`absolute left-0 top-4 bottom-4 w-0.5 rounded-r-sm transition-opacity duration-300 opacity-40 group-hover:opacity-100`}
+                  style={{ backgroundColor: color }}
+                />
+                <div className={`pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full blur-3xl transition-opacity duration-500 opacity-0 group-hover:opacity-[0.15]`}
+                  style={{ backgroundColor: color }}
+                />
+                <span className="absolute right-4 top-3.5 font-mono text-[9px] tracking-[0.15em] text-slate-300 transition-colors duration-300 group-hover:text-[#0EA5E9]/50">
+                  {s.folio}
                 </span>
-                <h3 className="mt-2 font-serif text-lg font-medium">{p.etapa}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[#8A9690]">{p.descripcion}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ---------------------------------------------------------- */}
-      {/* Métricas                                                     */}
-      {/* ---------------------------------------------------------- */}
-      <section
-        id="metricas"
-        className="relative z-10 border-b border-[#2A3530] bg-[#141B18] px-6 py-20"
-      >
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-3 font-mono text-xs uppercase tracking-wider text-[#D97A4D]">
-            DG-07 / RESULTADOS
-          </div>
-          <div className="grid grid-cols-2 gap-10 border-t border-[#2A3530] pt-10 md:grid-cols-4">
-            {METRICAS.map((m, i) => (
-              <motion.div
-                key={m.label}
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.45, delay: i * 0.07 }}
-              >
-                <h3 className="font-serif text-4xl font-medium tabular-nums text-[#3D9B7C] md:text-5xl">
-                  {m.valor}
-                </h3>
-                <p className="mt-2 font-mono text-xs uppercase tracking-wider text-[#8A9690]">
-                  {m.label}
+                <div className={`mb-5 flex h-9 w-9 items-center justify-center rounded-lg border transition-all duration-300
+                  ${usaColorSecundario
+                    ? "border-slate-100 text-slate-400 group-hover:border-[#2563EB]/40 group-hover:bg-[#2563EB]/5 group-hover:text-[#2563EB]"
+                    : "border-slate-100 text-slate-400 group-hover:border-[#0EA5E9]/40 group-hover:bg-[#0EA5E9]/5 group-hover:text-[#0EA5E9]"
+                  }`}>
+                  {Icono ? <Icono className="h-4 w-4" /> : null}
+                </div>
+                <p className="font-mono text-[10px] uppercase tracking-wider" style={{ color }}>
+                  {s.tag}
                 </p>
+                <h3 className="mt-1.5 font-serif text-[17px] font-medium leading-snug text-slate-900">
+                  {s.nombre}
+                </h3>
+                <p className="mt-2.5 text-[12px] leading-relaxed text-slate-500 transition-colors duration-300 group-hover:text-slate-500">
+                  {s.descripcion}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-1.5">
+                  {(TECH_PILLS[clave] ?? []).map((t) => (
+                    <span key={t} className="rounded border border-slate-200 px-2 py-0.5 font-mono text-[9.5px] tracking-wide text-slate-400 transition-colors duration-300 group-hover:border-slate-300 group-hover:text-[#0EA5E9]">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+                <div className={`mt-5 h-px w-6 transition-all duration-300 group-hover:w-12`}
+                  style={{ backgroundColor: "#E2E8F0" }}
+                />
+                <div className={`mt-5 h-px w-6 transition-all duration-300 group-hover:w-12`}
+                  style={{ backgroundColor: color }}
+                />
               </motion.div>
-            ))}
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Proceso                                                           */
+/* ------------------------------------------------------------------ */
+
+function ProcesoSection() {
+  return (
+    <section id="proceso" className="relative z-10 border-b border-[#E2E8F0] px-6 py-24">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-3 font-mono text-xs uppercase tracking-wider text-slate-400">
+          DG-05 / METODOLOGÍA
+        </div>
+        <h2 className="mb-14 max-w-2xl font-serif text-4xl font-medium tracking-tight md:text-5xl">
+          Cómo trabajamos
+        </h2>
+        <div className="grid gap-0 md:grid-cols-4">
+          {PROCESO.map((p, i) => (
+            <motion.div
+              key={p.etapa}
+              initial={{ opacity: 0, y: 14 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.45, delay: i * 0.1 }}
+              className={`border-t border-[#0EA5E9]/60 py-6 pr-6 ${i > 0 ? "md:border-l md:border-t-0 md:border-[#E2E8F0] md:pl-6" : ""}`}
+            >
+              <span className="font-mono text-xs text-slate-500">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <h3 className="mt-2 font-serif text-lg font-medium">{p.etapa}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-500">{p.descripcion}</p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Métricas — con contadores animados                                */
+/* ------------------------------------------------------------------ */
+
+function MetricasSection() {
+  return (
+    <section
+      id="metricas"
+      className="relative z-10 border-b border-[#E2E8F0] bg-[#EFF6FF] px-6 py-20"
+    >
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-3 font-mono text-xs uppercase tracking-wider text-slate-400">
+          DG-07 / RESULTADOS
+        </div>
+        <div className="grid grid-cols-2 gap-10 border-t border-[#E2E8F0] pt-10 md:grid-cols-4">
+          {METRICAS.map((m, i) => (
+            <motion.div
+              key={m.label}
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.45, delay: i * 0.07 }}
+            >
+              <ContadorMetrica valor={m.valor} sufijo={m.sufijo} />
+              <p className="mt-2 font-mono text-xs uppercase tracking-wider text-slate-500">
+                {m.label}
+              </p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Footer mejorado                                                   */
+/* ------------------------------------------------------------------ */
+
+function Footer() {
+  return (
+    <footer className="relative z-10 border-t border-slate-200 bg-white px-6 py-10">
+      <div className="mx-auto flex max-w-6xl flex-col gap-8 md:flex-row md:justify-between md:items-center">
+        <div className="flex items-center gap-3">
+          <img src="/logo_datagob.png" alt="DataGob" className="h-8 w-8 rounded-lg object-contain" />
+          <div className="flex flex-col gap-0.5">
+            <span className="font-serif text-lg font-semibold text-slate-900">
+              DATA<span className="text-[#0EA5E9]">GOB</span>
+            </span>
+            <span className="font-mono text-xs text-slate-500">
+              Santiago, Chile
+            </span>
           </div>
         </div>
-      </section>
-
-      {/* ---------------------------------------------------------- */}
-      {/* Contacto                                                     */}
-      {/* ---------------------------------------------------------- */}
-      <ContactSection />
-
-      <footer className="relative z-10 px-6 py-8">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 font-mono text-xs text-[#8A9690] md:flex-row md:justify-between">
-          <span>DATAGOB — Santiago, Chile</span>
-          <span>© {new Date().getFullYear()} Todos los derechos reservados</span>
+        <div className="flex flex-col gap-2 md:text-right">
+          <div className="flex gap-6 font-mono text-xs text-slate-500">
+            <a href="mailto:contacto@datagob.cl" className="hover:text-[#0284C7] transition-colors">
+              contacto@datagob.cl
+            </a>
+            <a href="tel:+56229402358" className="hover:text-[#0284C7] transition-colors">
+              +56 2 2940 2358
+            </a>
+          </div>
+          <span className="font-mono text-xs text-slate-400">
+            © {new Date().getFullYear()} Todos los derechos reservados
+          </span>
         </div>
-      </footer>
-    </main>
+      </div>
+    </footer>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Skip link — accesibilidad                                         */
+/* ------------------------------------------------------------------ */
+
+function SkipLink() {
+  return (
+    <a
+      href="#main"
+      className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:rounded-lg focus:bg-[#0EA5E9] focus:px-4 focus:py-2 focus:text-white focus:font-mono focus:text-sm"
+    >
+      Saltar al contenido principal
+    </a>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Página principal                                                  */
+/* ------------------------------------------------------------------ */
+
+export default function Home() {
+  return (
+    <>
+      <SkipLink />
+      <main id="main" className="bg-[#F8FAFC] text-slate-900">
+        <Header />
+        <HeroSection />
+        <ServiciosSection />
+        <ProcesoSection />
+        <MetricasSection />
+        <TestimoniosSection />
+        <ContactSection />
+        <Footer />
+      </main>
+    </>
   );
 }
