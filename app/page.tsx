@@ -359,39 +359,157 @@ function DiagramaFlujoDesktop() {
 }
 
 function DiagramaFlujoMobile() {
-  const pasos = [
-    { label: "Fuentes", items: ["ERP", "CRM", "Planillas", "Soporte"] },
-    { label: "Ingesta & Gobierno", items: ["Ingesta", "Calidad y gobierno"] },
-    { label: "Almacén", items: ["Data Warehouse / Lakehouse"] },
-    { label: "Modelos", items: ["ML", "Data Science"] },
-    { label: "Salidas", items: ["BI", "NLP", "Automatización", "Alertas"] },
+  /* Layout zig-zag vertical. Cada nodo alterna lado.
+     viewBox: 320 x 520. Centro X=160. */
+  const nodos = [
+    { id: "ERP", y: 30, lado: -1, color: "#64748B" },
+    { id: "CRM", y: 80, lado: 1, color: "#64748B" },
+    { id: "Planillas", y: 130, lado: -1, color: "#64748B" },
+    { id: "Soporte", y: 180, lado: 1, color: "#64748B" },
+    { id: "Ingesta", y: 240, lado: -1, color: "#0EA5E9" },
+    { id: "Gobierno", y: 300, lado: 1, color: "#0EA5E9" },
+    { id: "Warehouse", y: 360, lado: 0, color: "#2563EB", w: 140 },
+    { id: "ML", y: 420, lado: -1, color: "#0EA5E9" },
+    { id: "DataSci", y: 470, lado: 1, color: "#0EA5E9" },
+    { id: "BI", y: 530, lado: -1, color: "#2563EB" },
+    { id: "NLP", y: 580, lado: 1, color: "#2563EB" },
   ];
+
+  const CX_CENTRO = 160;
+  const OFFSET_X = 90;   // distancia desde el centro
+  const R = 6;
+
+  function cx(n: typeof nodos[0]) {
+    if (n.lado === 0) return CX_CENTRO;
+    return CX_CENTRO + n.lado * OFFSET_X;
+  }
+
+  // Conexiones zig-zag entre nodos consecutivos
+  const conexiones = nodos.slice(0, -1).map((n, i) => {
+    const next = nodos[i + 1];
+    const x1 = cx(n);
+    const y1 = n.y + R + 2;
+    const x2 = cx(next);
+    const y2 = next.y - R - 2;
+    // Punto de control para curva suave en zigzag
+    const mx = (x1 + x2) / 2;
+    const my = (y1 + y2) / 2;
+    // Si van del mismo lado, curva hacia afuera
+    const cx1 = n.lado === next.lado ? mx + (n.lado * 40) : mx;
+    const cx2 = n.lado === next.lado ? mx + (next.lado * 40) : mx;
+    return { x1, y1, x2, y2, cx1, cx2, my, delay: i * 0.18 };
+  });
+
   return (
-    <div className="md:hidden flex flex-col gap-4">
-      {pasos.map((paso, i) => (
-        <motion.div
-          key={paso.label}
-          initial={{ opacity: 0, x: -20 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: i * 0.1 }}
-          className="rounded-xl border border-slate-200 bg-white/60 p-4"
-        >
-          <p className="font-mono text-[10px] uppercase tracking-wider text-[#0EA5E9] mb-2">
-            {String(i + 1).padStart(2, "0")} — {paso.label}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {paso.items.map((item) => (
-              <span
-                key={item}
-                className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700"
+    <div className="md:hidden w-full overflow-x-auto">
+      <svg
+        viewBox="0 0 320 620"
+        className="mx-auto h-auto w-full max-w-sm"
+        aria-hidden="true"
+      >
+        <defs>
+          <linearGradient id="zigStroke" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#CBD5E1" stopOpacity="0.3" />
+            <stop offset="50%" stopColor="#38BDF8" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="#CBD5E1" stopOpacity="0.3" />
+          </linearGradient>
+          <filter id="glowZig">
+            <feGaussianBlur stdDeviation="2.5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        {/* Líneas conectoras */}
+        {conexiones.map((c, i) => (
+          <path
+            key={`conn-${i}`}
+            d={`M ${c.x1} ${c.y1} Q ${c.cx1} ${c.my} ${c.x2} ${c.y2}`}
+            fill="none"
+            stroke="url(#zigStroke)"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        ))}
+
+        {/* Partículas animadas por cada conexión */}
+        {conexiones.map((c, i) => (
+          <motion.circle
+            key={`dot-${i}`}
+            r="3.5"
+            fill="#0EA5E9"
+            filter="url(#glowZig)"
+            initial={{ opacity: 0 }}
+            animate={{
+              opacity: [0, 1, 1, 0],
+            }}
+            transition={{
+              duration: 2,
+              delay: c.delay,
+              repeat: Infinity,
+              repeatDelay: 1.2,
+              ease: "easeInOut",
+              times: [0, 0.15, 0.85, 1],
+            }}
+          >
+            <animateMotion
+              dur="2s"
+              repeatCount="indefinite"
+              begin={`${c.delay}s`}
+              path={`M ${c.x1} ${c.y1} Q ${c.cx1} ${c.my} ${c.x2} ${c.y2}`}
+            />
+          </motion.circle>
+        ))}
+
+        {/* Nodos */}
+        {nodos.map((n, i) => {
+          const x = cx(n);
+          const w = n.w ?? 90;
+          const align = n.lado === -1 ? "end" : n.lado === 1 ? "start" : "middle";
+          const tx = n.lado === -1 ? x - 14 : n.lado === 1 ? x + 14 : x;
+          const ty = n.y + 4;
+
+          return (
+            <g key={n.id}>
+              {/* Glow de fondo */}
+              <circle cx={x} cy={n.y} r="18" fill={n.color} opacity="0.08" />
+              {/* Nodo */}
+              <rect
+                x={x - w / 2}
+                y={n.y - 16}
+                width={w}
+                height="32"
+                rx="16"
+                fill="rgba(255,255,255,0.95)"
+                stroke={n.color}
+                strokeWidth="1.2"
+                strokeOpacity="0.5"
+              />
+              {/* Punto indicador */}
+              <circle
+                cx={n.lado === -1 ? x - w / 2 + 10 : n.lado === 1 ? x + w / 2 - 10 : x}
+                cy={n.y}
+                r="2.5"
+                fill={n.color}
+                opacity="0.7"
+              />
+              <text
+                x={tx}
+                y={ty}
+                textAnchor={align}
+                fontFamily="ui-sans-serif, system-ui"
+                fontSize="11"
+                fill="#0F172A"
+                opacity="0.95"
               >
-                {item}
-              </span>
-            ))}
-          </div>
-        </motion.div>
-      ))}
+                {n.id}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
     </div>
   );
 }
@@ -971,7 +1089,7 @@ function HeroSection() {
             Ingeniería de datos, BI, ML y automatización — Santiago, Chile
           </p>
           <h1 className="max-w-3xl font-serif text-4xl font-medium leading-[1.15] tracking-tight md:text-6xl">
-            Impulsa tu empresa con Ingeniería de Datos, Analítica Avanzada y Automatización Inteligente.
+            Automatiza tu empresa con IA, Ingeniería de Datos y Analítica Avanzada.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-500">
             Tus datos están dispersos en sistemas que no se hablan entre sí,
