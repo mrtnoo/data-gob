@@ -359,9 +359,8 @@ function DiagramaFlujoDesktop() {
 }
 
 function DiagramaFlujoMobile() {
-  /* ── Pipeline tipo "Pac-Man" en zig-zag vertical ──
-     Un personaje animado recorre tuberías en S comiendo puntos de datos.
-     viewBox: 360 x 660. Centro X=180. */
+  /* ── Layout zig-zag vertical con grupos unidos y tuberías en S ──
+     viewBox: 360 x 800. Centro X=180. */
 
   type NodoMobile = {
     id: string;
@@ -390,6 +389,8 @@ function DiagramaFlujoMobile() {
     { id: "NLP", y: 620, lado: 1, color: "#2563EB", grupo: "salidas" },
   ];
 
+  /* Grupos con bordes compartidos — se tocan para que las tuberías
+     crucen de uno a otro sin saltos visuales. */
   const grupos = [
     { key: "fuentes", label: "FUENTES", y0: 18, y1: 228, color: "#64748B" },
     { key: "proceso", label: "PROCESO", y0: 228, y1: 338, color: "#0EA5E9" },
@@ -407,49 +408,43 @@ function DiagramaFlujoMobile() {
     return CX_CENTRO + n.lado * OFFSET_X;
   }
 
-  // ── Tuberías en S ──
+  // ── Tuberías tipo "S" con curvas más pronunciadas ──
   const tuberias = nodos.slice(0, -1).map((n, i) => {
     const next = nodos[i + 1];
     const x1 = cx(n);
     const y1 = n.y + R + 4;
     const x2 = cx(next);
     const y2 = next.y - R - 4;
+
     const dy = y2 - y1;
 
+    // Control points para curva en S pronunciada
+    // Si cambian de lado: la curva cruza el centro formando una S
+    // Si son del mismo lado: la curva se abre hacia afuera
     let cp1x: number, cp1y: number, cp2x: number, cp2y: number;
+
     if (n.lado === 0 || next.lado === 0) {
+      // Uno de los dos está en el centro → curva suave hacia el centro
       cp1x = x1 + (CX_CENTRO - x1) * 0.5;
       cp1y = y1 + dy * 0.25;
       cp2x = x2 + (CX_CENTRO - x2) * 0.5;
       cp2y = y2 - dy * 0.25;
     } else if (n.lado !== next.lado) {
-      cp1x = x1 + n.lado * 35;
+      // Cambian de lado → S que cruza por el centro
+      cp1x = x1 + (n.lado * 30);           // empuja hacia afuera un poco
       cp1y = y1 + dy * 0.45;
-      cp2x = x2 + next.lado * 35;
+      cp2x = x2 + (next.lado * 30);
       cp2y = y2 - dy * 0.45;
     } else {
-      cp1x = x1 + n.lado * 75;
+      // Mismo lado → lazo hacia afuera
+      cp1x = x1 + n.lado * 70;
       cp1y = y1 + dy * 0.35;
-      cp2x = x2 + next.lado * 75;
+      cp2x = x2 + next.lado * 70;
       cp2y = y2 - dy * 0.35;
     }
+
     const d = `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
     return { d, delay: i * 0.22, color: next.color };
-  });
-
-  // ── Puntos de datos ("comida") distribuidos a lo largo de cada tubería ──
-  const comida = tuberias.flatMap((t, ti) => {
-    const puntos = [];
-    for (let j = 1; j <= 3; j++) {
-      puntos.push({
-        key: `food-${ti}-${j}`,
-        path: t.d,
-        offset: j * 0.25,
-        delay: t.delay + j * 0.08,
-        color: t.color,
-      });
-    }
-    return puntos;
   });
 
   return (
@@ -461,27 +456,20 @@ function DiagramaFlujoMobile() {
       >
         <defs>
           <filter id="pipeGlow" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="5" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-          <filter id="pacGlow">
-            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feGaussianBlur stdDeviation="4" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
           <linearGradient id="pipeGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#E0F2FE" stopOpacity="0.5" />
-            <stop offset="50%" stopColor="#7DD3FC" stopOpacity="0.85" />
-            <stop offset="100%" stopColor="#E0F2FE" stopOpacity="0.5" />
+            <stop offset="0%" stopColor="#E0F2FE" stopOpacity="0.6" />
+            <stop offset="50%" stopColor="#7DD3FC" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#E0F2FE" stopOpacity="0.6" />
           </linearGradient>
         </defs>
 
-        {/* ── Fondos de grupo unidos ── */}
+        {/* ── Fondos de grupo (tocándose) ── */}
         {grupos.map((g) => (
           <g key={g.key}>
             <rect
@@ -518,113 +506,53 @@ function DiagramaFlujoMobile() {
             d={t.d}
             fill="none"
             stroke="url(#pipeGrad)"
-            strokeWidth="12"
+            strokeWidth="10"
             strokeLinecap="round"
-            opacity="0.2"
+            opacity="0.22"
             filter="url(#pipeGlow)"
           />
         ))}
 
-        {/* ── Tuberías: línea interior ── */}
+        {/* ── Tuberías: línea fina interior ── */}
         {tuberias.map((t, i) => (
           <path
             key={`pipe-line-${i}`}
             d={t.d}
             fill="none"
             stroke={t.color}
-            strokeWidth="2.5"
+            strokeWidth="2"
             strokeLinecap="round"
-            opacity="0.4"
+            opacity="0.45"
           />
         ))}
 
-        {/* ── Puntos de datos (comida) ── */}
-        {comida.map((c) => (
+        {/* ── Partículas animadas ── */}
+        {tuberias.map((t, i) => (
           <motion.circle
-            key={c.key}
-            r="3"
-            fill={c.color}
-            opacity="0.7"
+            key={`dot-${i}`}
+            r="4"
+            fill="#FFFFFF"
+            stroke={t.color}
+            strokeWidth="1.5"
             initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 0.7, 0.7, 0] }}
+            animate={{ opacity: [0, 1, 1, 0] }}
             transition={{
-              duration: 2.8,
-              delay: c.delay,
+              duration: 2.2,
+              delay: t.delay,
               repeat: Infinity,
-              repeatDelay: 0.5,
+              repeatDelay: 1,
               ease: "easeInOut",
-              times: [0, 0.1, 0.9, 1],
+              times: [0, 0.12, 0.88, 1],
             }}
           >
             <animateMotion
-              dur="2.8s"
+              dur="2.2s"
               repeatCount="indefinite"
-              begin={`${c.delay}s`}
-              path={c.path}
+              begin={`${t.delay}s`}
+              path={t.d}
             />
           </motion.circle>
         ))}
-
-        {/* ── Pac-Man que recorre TODO el pipeline ── */}
-        <g filter="url(#pacGlow)">
-          {/* Cuerpo amarillo */}
-          <motion.circle
-            r="9"
-            fill="#FBBF24"
-            stroke="#F59E0B"
-            strokeWidth="1.5"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-            <animateMotion
-              dur="14s"
-              repeatCount="indefinite"
-              path={tuberias.map((t) => t.d).join(" ")}
-            />
-          </motion.circle>
-          {/* Boca (triángulo que rota) */}
-          <motion.g
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-            <animateMotion
-              dur="14s"
-              repeatCount="indefinite"
-              path={tuberias.map((t) => t.d).join(" ")}
-            />
-            <motion.path
-              d="M 0 0 L 12 -5 L 12 5 Z"
-              fill="#F8FAFC"
-              animate={{ rotate: [0, 30, 0, -30, 0] }}
-              transition={{
-                duration: 0.4,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-              style={{ transformOrigin: "0 0" }}
-            />
-          </motion.g>
-          {/* Ojo */}
-          <motion.circle
-            r="1.8"
-            fill="#1E293B"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-            <animateMotion
-              dur="14s"
-              repeatCount="indefinite"
-              path={tuberias.map((t) => t.d).join(" ")}
-            />
-            <animateTransform
-              attributeName="transform"
-              type="translate"
-              values="-3 -4; -3 -4"
-              dur="14s"
-              repeatCount="indefinite"
-            />
-          </motion.circle>
-        </g>
 
         {/* ── Nodos ── */}
         {nodos.map((n) => {
@@ -634,7 +562,10 @@ function DiagramaFlujoMobile() {
 
           return (
             <g key={n.id}>
+              {/* Halo */}
               <circle cx={x} cy={n.y} r="22" fill={n.color} opacity="0.06" />
+
+              {/* Caja */}
               <rect
                 x={x - w / 2}
                 y={n.y - 18}
@@ -646,6 +577,8 @@ function DiagramaFlujoMobile() {
                 strokeWidth="1.4"
                 strokeOpacity="0.45"
               />
+
+              {/* Indicador lateral */}
               <circle
                 cx={isCentro ? x : n.lado === -1 ? x - w / 2 + 12 : x + w / 2 - 12}
                 cy={n.y}
@@ -653,6 +586,8 @@ function DiagramaFlujoMobile() {
                 fill={n.color}
                 opacity="0.6"
               />
+
+              {/* Texto centrado */}
               <text
                 x={x}
                 y={n.y + 4.5}
