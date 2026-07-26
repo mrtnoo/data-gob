@@ -359,247 +359,263 @@ function DiagramaFlujoDesktop() {
 }
 
 function DiagramaFlujoMobile() {
-  /* ── Layout zig-zag vertical con grupos unidos y tuberías en S ──
-     viewBox: 360 x 800. Centro X=180. */
-
-  type NodoMobile = {
+  type Caja = {
     id: string;
+    x: number;
     y: number;
-    lado: -1 | 0 | 1;
+    w: number;
+    h: number;
     color: string;
-    w?: number;
     grupo: string;
   };
 
-  const nodos: NodoMobile[] = [
-    { id: "ERP", y: 50, lado: -1, color: "#64748B", grupo: "fuentes" },
-    { id: "CRM", y: 100, lado: 1, color: "#64748B", grupo: "fuentes" },
-    { id: "Planillas", y: 150, lado: -1, color: "#64748B", grupo: "fuentes" },
-    { id: "Soporte", y: 200, lado: 1, color: "#64748B", grupo: "fuentes" },
-
-    { id: "Ingesta", y: 260, lado: -1, color: "#0EA5E9", grupo: "proceso" },
-    { id: "Gobierno", y: 310, lado: 1, color: "#0EA5E9", grupo: "proceso" },
-
-    { id: "Lakehouse", y: 380, lado: 0, color: "#2563EB", w: 140, grupo: "almacen" },
-
-    { id: "ML", y: 450, lado: -1, color: "#0EA5E9", grupo: "modelos" },
-    { id: "DataSci", y: 500, lado: 1, color: "#0EA5E9", grupo: "modelos" },
-
-    { id: "BI", y: 570, lado: -1, color: "#2563EB", grupo: "salidas" },
-    { id: "NLP", y: 620, lado: 1, color: "#2563EB", grupo: "salidas" },
+  const cajas: Caja[] = [
+    { id: "ERP", x: 90, y: 55, w: 130, h: 42, color: "#64748B", grupo: "fuentes" },
+    { id: "CRM", x: 270, y: 110, w: 130, h: 42, color: "#64748B", grupo: "fuentes" },
+    { id: "Planillas", x: 90, y: 165, w: 130, h: 42, color: "#64748B", grupo: "fuentes" },
+    { id: "Soporte", x: 270, y: 220, w: 130, h: 42, color: "#64748B", grupo: "fuentes" },
+    { id: "Ingesta", x: 90, y: 295, w: 130, h: 42, color: "#0EA5E9", grupo: "proceso" },
+    { id: "Gobierno", x: 270, y: 350, w: 130, h: 42, color: "#0EA5E9", grupo: "proceso" },
+    { id: "Lakehouse", x: 180, y: 425, w: 160, h: 48, color: "#2563EB", grupo: "almacen" },
+    { id: "ML", x: 90, y: 510, w: 130, h: 42, color: "#0EA5E9", grupo: "modelos" },
+    { id: "DataSci", x: 270, y: 565, w: 130, h: 42, color: "#0EA5E9", grupo: "modelos" },
+    { id: "BI", x: 90, y: 640, w: 130, h: 42, color: "#2563EB", grupo: "salidas" },
+    { id: "NLP", x: 270, y: 695, w: 130, h: 42, color: "#2563EB", grupo: "salidas" },
   ];
 
-  /* Grupos con bordes compartidos — se tocan para que las tuberías
-     crucen de uno a otro sin saltos visuales. */
   const grupos = [
-    { key: "fuentes", label: "FUENTES", y0: 18, y1: 228, color: "#64748B" },
-    { key: "proceso", label: "PROCESO", y0: 228, y1: 338, color: "#0EA5E9" },
-    { key: "almacen", label: "ALMACÉN", y0: 338, y1: 418, color: "#2563EB" },
-    { key: "modelos", label: "MODELOS", y0: 418, y1: 528, color: "#0EA5E9" },
-    { key: "salidas", label: "SALIDAS", y0: 528, y1: 650, color: "#2563EB" },
+    { key: "fuentes", label: "FUENTES", y0: 15, y1: 250, color: "#64748B" },
+    { key: "proceso", label: "PROCESO", y0: 250, y1: 385, color: "#0EA5E9" },
+    { key: "almacen", label: "ALMACÉN", y0: 385, y1: 470, color: "#2563EB" },
+    { key: "modelos", label: "MODELOS", y0: 470, y1: 605, color: "#0EA5E9" },
+    { key: "salidas", label: "SALIDAS", y0: 605, y1: 735, color: "#2563EB" },
   ];
 
-  const CX_CENTRO = 180;
-  const OFFSET_X = 95;
-  const R = 8;
-
-  function cx(n: NodoMobile) {
-    if (n.lado === 0) return CX_CENTRO;
-    return CX_CENTRO + n.lado * OFFSET_X;
-  }
-
-  // ── Tuberías tipo "S" con curvas más pronunciadas ──
-  const tuberias = nodos.slice(0, -1).map((n, i) => {
-    const next = nodos[i + 1];
-    const x1 = cx(n);
-    const y1 = n.y + R + 4;
-    const x2 = cx(next);
-    const y2 = next.y - R - 4;
-
+  // Tuberías que conectan borde inferior → borde superior
+  const tuberias = cajas.slice(0, -1).map((c, i) => {
+    const next = cajas[i + 1];
+    const x1 = c.x;
+    const y1 = c.y + c.h / 2;
+    const x2 = next.x;
+    const y2 = next.y - next.h / 2;
     const dy = y2 - y1;
+    const dx = x2 - x1;
 
-    // Control points para curva en S pronunciada
-    // Si cambian de lado: la curva cruza el centro formando una S
-    // Si son del mismo lado: la curva se abre hacia afuera
     let cp1x: number, cp1y: number, cp2x: number, cp2y: number;
-
-    if (n.lado === 0 || next.lado === 0) {
-      // Uno de los dos está en el centro → curva suave hacia el centro
-      cp1x = x1 + (CX_CENTRO - x1) * 0.5;
-      cp1y = y1 + dy * 0.25;
-      cp2x = x2 + (CX_CENTRO - x2) * 0.5;
-      cp2y = y2 - dy * 0.25;
-    } else if (n.lado !== next.lado) {
-      // Cambian de lado → S que cruza por el centro
-      cp1x = x1 + (n.lado * 30);           // empuja hacia afuera un poco
-      cp1y = y1 + dy * 0.45;
-      cp2x = x2 + (next.lado * 30);
-      cp2y = y2 - dy * 0.45;
-    } else {
-      // Mismo lado → lazo hacia afuera
-      cp1x = x1 + n.lado * 70;
+    if (Math.abs(dx) < 10) {
+      cp1x = x1 + 70;
       cp1y = y1 + dy * 0.35;
-      cp2x = x2 + next.lado * 70;
+      cp2x = x2 + 70;
       cp2y = y2 - dy * 0.35;
+    } else {
+      cp1x = x1 + dx * 0.25;
+      cp1y = y1 + dy * 0.55;
+      cp2x = x2 - dx * 0.25;
+      cp2y = y2 - dy * 0.55;
     }
-
     const d = `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
     return { d, delay: i * 0.22, color: next.color };
   });
 
+  const fullPath = tuberias.map((t) => t.d).join(" ");
+
+  const comida = tuberias.flatMap((t, ti) => [
+    { key: `f-${ti}-1`, path: t.d, delay: t.delay + 0.1, color: t.color },
+    { key: `f-${ti}-2`, path: t.d, delay: t.delay + 0.35, color: t.color },
+    { key: `f-${ti}-3`, path: t.d, delay: t.delay + 0.6, color: t.color },
+  ]);
+
   return (
     <div className="md:hidden w-full">
       <svg
-        viewBox="0 0 360 660"
+        viewBox="0 0 360 740"
         className="mx-auto h-auto w-full max-w-sm"
         aria-hidden="true"
       >
         <defs>
-          <filter id="pipeGlow" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="4" result="blur" />
+          <filter id="pipeGlow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="6" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
-          <linearGradient id="pipeGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#E0F2FE" stopOpacity="0.6" />
-            <stop offset="50%" stopColor="#7DD3FC" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#E0F2FE" stopOpacity="0.6" />
+          <filter id="cajaShadow" x="-10%" y="-10%" width="120%" height="130%">
+            <feDropShadow dx="0" dy="3" stdDeviation="5" floodColor="#0F172A" floodOpacity="0.06" />
+          </filter>
+          <linearGradient id="pipeBody" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#E0F2FE" stopOpacity="0.8" />
+            <stop offset="50%" stopColor="#BAE6FD" stopOpacity="0.95" />
+            <stop offset="100%" stopColor="#E0F2FE" stopOpacity="0.8" />
           </linearGradient>
         </defs>
 
-        {/* ── Fondos de grupo (tocándose) ── */}
+        {/* Fondos de grupo */}
         {grupos.map((g) => (
           <g key={g.key}>
             <rect
-              x="20"
+              x="12"
               y={g.y0}
-              width="320"
+              width="336"
               height={g.y1 - g.y0}
-              rx="14"
+              rx="16"
               fill={g.color}
-              opacity="0.035"
+              opacity="0.03"
               stroke={g.color}
-              strokeOpacity="0.15"
+              strokeOpacity="0.12"
               strokeWidth="1"
             />
             <text
               x="340"
-              y={g.y0 + 13}
+              y={g.y0 + 14}
               textAnchor="end"
               fontFamily="ui-monospace, monospace"
               fontSize="9"
               letterSpacing="2"
               fill={g.color}
-              opacity="0.45"
+              opacity="0.4"
             >
               {g.label}
             </text>
           </g>
         ))}
 
-        {/* ── Tuberías: fondo grueso con glow ── */}
+        {/* Tuberías: cuerpo grueso */}
         {tuberias.map((t, i) => (
           <path
-            key={`pipe-bg-${i}`}
+            key={`pipe-body-${i}`}
             d={t.d}
             fill="none"
-            stroke="url(#pipeGrad)"
-            strokeWidth="10"
+            stroke="url(#pipeBody)"
+            strokeWidth="16"
             strokeLinecap="round"
-            opacity="0.22"
+            opacity="0.35"
             filter="url(#pipeGlow)"
           />
         ))}
 
-        {/* ── Tuberías: línea fina interior ── */}
+        {/* Tuberías: borde */}
         {tuberias.map((t, i) => (
           <path
-            key={`pipe-line-${i}`}
+            key={`pipe-border-${i}`}
             d={t.d}
             fill="none"
             stroke={t.color}
-            strokeWidth="2"
+            strokeWidth="3"
             strokeLinecap="round"
-            opacity="0.45"
+            opacity="0.35"
           />
         ))}
 
-        {/* ── Partículas animadas ── */}
+        {/* Tuberías: línea luminosa interior */}
         {tuberias.map((t, i) => (
+          <path
+            key={`pipe-core-${i}`}
+            d={t.d}
+            fill="none"
+            stroke="#FFFFFF"
+            strokeWidth="4"
+            strokeLinecap="round"
+            opacity="0.6"
+          />
+        ))}
+
+        {/* Puntos de datos (comida) */}
+        {comida.map((c) => (
           <motion.circle
-            key={`dot-${i}`}
-            r="4"
-            fill="#FFFFFF"
-            stroke={t.color}
-            strokeWidth="1.5"
+            key={c.key}
+            r="3.5"
+            fill={c.color}
+            opacity="0.8"
             initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 1, 1, 0] }}
+            animate={{ opacity: [0, 0.8, 0.8, 0] }}
             transition={{
-              duration: 2.2,
-              delay: t.delay,
+              duration: 2.6,
+              delay: c.delay,
               repeat: Infinity,
-              repeatDelay: 1,
+              repeatDelay: 0.4,
               ease: "easeInOut",
-              times: [0, 0.12, 0.88, 1],
+              times: [0, 0.08, 0.92, 1],
             }}
           >
             <animateMotion
-              dur="2.2s"
+              dur="2.6s"
               repeatCount="indefinite"
-              begin={`${t.delay}s`}
-              path={t.d}
+              begin={`${c.delay}s`}
+              path={c.path}
             />
           </motion.circle>
         ))}
 
-        {/* ── Nodos ── */}
-        {nodos.map((n) => {
-          const x = cx(n);
-          const w = n.w ?? 100;
-          const isCentro = n.lado === 0;
+        {/* Pac-Man */}
+        <g>
+          <motion.circle r="10" fill="#FBBF24" opacity="0.15" filter="url(#pipeGlow)">
+            <animateMotion dur="16s" repeatCount="indefinite" path={fullPath} />
+          </motion.circle>
+          <motion.circle r="8" fill="#FBBF24" stroke="#F59E0B" strokeWidth="1.2">
+            <animateMotion dur="16s" repeatCount="indefinite" path={fullPath} />
+          </motion.circle>
+          <motion.g>
+            <animateMotion dur="16s" repeatCount="indefinite" path={fullPath} />
+            <motion.path
+              d="M 2 -1 L 10 -6 L 10 6 Z"
+              fill="#F8FAFC"
+              animate={{ scaleY: [1, 0.2, 1, 0.2, 1] }}
+              transition={{ duration: 0.35, repeat: Infinity, ease: "easeInOut" }}
+              style={{ transformOrigin: "2px 0px" }}
+            />
+          </motion.g>
+          <motion.g>
+            <animateMotion dur="16s" repeatCount="indefinite" path={fullPath} />
+            <circle cx="-2" cy="-4" r="2" fill="#1E293B" />
+            <circle cx="-1.5" cy="-4.5" r="0.7" fill="#FFFFFF" />
+          </motion.g>
+        </g>
 
+        {/* Cajas con texto dentro */}
+        {cajas.map((c) => {
+          const rx = 10;
           return (
-            <g key={n.id}>
-              {/* Halo */}
-              <circle cx={x} cy={n.y} r="22" fill={n.color} opacity="0.06" />
-
-              {/* Caja */}
+            <g key={c.id} filter="url(#cajaShadow)">
               <rect
-                x={x - w / 2}
-                y={n.y - 18}
-                width={w}
-                height="36"
-                rx="18"
-                fill="rgba(255,255,255,0.98)"
-                stroke={n.color}
-                strokeWidth="1.4"
-                strokeOpacity="0.45"
+                x={c.x - c.w / 2}
+                y={c.y - c.h / 2}
+                width={c.w}
+                height={c.h}
+                rx={rx}
+                fill="#FFFFFF"
+                stroke={c.color}
+                strokeWidth="1.5"
+                strokeOpacity="0.35"
               />
-
-              {/* Indicador lateral */}
-              <circle
-                cx={isCentro ? x : n.lado === -1 ? x - w / 2 + 12 : x + w / 2 - 12}
-                cy={n.y}
-                r="3"
-                fill={n.color}
-                opacity="0.6"
+              <rect
+                x={c.x - c.w / 2}
+                y={c.y - c.h / 2 + 8}
+                width="3"
+                height={c.h - 16}
+                rx="1.5"
+                fill={c.color}
+                opacity="0.5"
               />
-
-              {/* Texto centrado */}
               <text
-                x={x}
-                y={n.y + 4.5}
+                x={c.x}
+                y={c.y + 1}
                 textAnchor="middle"
                 dominantBaseline="middle"
                 fontFamily="ui-sans-serif, system-ui, -apple-system, sans-serif"
-                fontSize="12"
-                fontWeight="500"
+                fontSize="13"
+                fontWeight="600"
                 fill="#0F172A"
               >
-                {n.id}
+                {c.id}
               </text>
+              <circle
+                cx={c.x + c.w / 2 - 12}
+                cy={c.y - c.h / 2 + 12}
+                r="16"
+                fill={c.color}
+                opacity="0.04"
+              />
             </g>
           );
         })}
@@ -607,6 +623,7 @@ function DiagramaFlujoMobile() {
     </div>
   );
 }
+
 
 /* ------------------------------------------------------------------ */
 /*  Íconos de servicio                                                */
