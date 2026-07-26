@@ -359,42 +359,44 @@ function DiagramaFlujoDesktop() {
 }
 
 function DiagramaFlujoMobile() {
-  /* ── Layout zig-zag vertical con grupos y tuberías ──
-     viewBox: 360 x 720. Centro X=180. */
+  /* ── Layout zig-zag vertical con grupos unidos y tuberías en S ──
+     viewBox: 360 x 800. Centro X=180. */
 
   type NodoMobile = {
     id: string;
     y: number;
-    lado: -1 | 0 | 1;        // -1 izq, 0 centro, 1 der
+    lado: -1 | 0 | 1;
     color: string;
     w?: number;
     grupo: string;
   };
 
   const nodos: NodoMobile[] = [
-    { id: "ERP", y: 55, lado: -1, color: "#64748B", grupo: "fuentes" },
-    { id: "CRM", y: 105, lado: 1, color: "#64748B", grupo: "fuentes" },
-    { id: "Planillas", y: 155, lado: -1, color: "#64748B", grupo: "fuentes" },
-    { id: "Soporte", y: 205, lado: 1, color: "#64748B", grupo: "fuentes" },
+    { id: "ERP", y: 50, lado: -1, color: "#64748B", grupo: "fuentes" },
+    { id: "CRM", y: 100, lado: 1, color: "#64748B", grupo: "fuentes" },
+    { id: "Planillas", y: 150, lado: -1, color: "#64748B", grupo: "fuentes" },
+    { id: "Soporte", y: 200, lado: 1, color: "#64748B", grupo: "fuentes" },
 
-    { id: "Ingesta", y: 290, lado: -1, color: "#0EA5E9", grupo: "proceso" },
-    { id: "Gobierno", y: 350, lado: 1, color: "#0EA5E9", grupo: "proceso" },
+    { id: "Ingesta", y: 260, lado: -1, color: "#0EA5E9", grupo: "proceso" },
+    { id: "Gobierno", y: 310, lado: 1, color: "#0EA5E9", grupo: "proceso" },
 
-    { id: "Warehouse", y: 430, lado: 0, color: "#2563EB", w: 150, grupo: "almacen" },
+    { id: "Lakehouse", y: 380, lado: 0, color: "#2563EB", w: 140, grupo: "almacen" },
 
-    { id: "ML", y: 510, lado: -1, color: "#0EA5E9", grupo: "modelos" },
-    { id: "DataSci", y: 570, lado: 1, color: "#0EA5E9", grupo: "modelos" },
+    { id: "ML", y: 450, lado: -1, color: "#0EA5E9", grupo: "modelos" },
+    { id: "DataSci", y: 500, lado: 1, color: "#0EA5E9", grupo: "modelos" },
 
-    { id: "BI", y: 650, lado: -1, color: "#2563EB", grupo: "salidas" },
-    { id: "NLP", y: 710, lado: 1, color: "#2563EB", grupo: "salidas" },
+    { id: "BI", y: 570, lado: -1, color: "#2563EB", grupo: "salidas" },
+    { id: "NLP", y: 620, lado: 1, color: "#2563EB", grupo: "salidas" },
   ];
 
+  /* Grupos con bordes compartidos — se tocan para que las tuberías
+     crucen de uno a otro sin saltos visuales. */
   const grupos = [
-    { key: "fuentes", label: "FUENTES", y0: 20, y1: 240, color: "#64748B" },
-    { key: "proceso", label: "PROCESO", y0: 255, y1: 385, color: "#0EA5E9" },
-    { key: "almacen", label: "ALMACÉN", y0: 400, y1: 470, color: "#2563EB" },
-    { key: "modelos", label: "MODELOS", y0: 485, y1: 605, color: "#0EA5E9" },
-    { key: "salidas", label: "SALIDAS", y0: 620, y1: 745, color: "#2563EB" },
+    { key: "fuentes", label: "FUENTES", y0: 18, y1: 228, color: "#64748B" },
+    { key: "proceso", label: "PROCESO", y0: 228, y1: 338, color: "#0EA5E9" },
+    { key: "almacen", label: "ALMACÉN", y0: 338, y1: 418, color: "#2563EB" },
+    { key: "modelos", label: "MODELOS", y0: 418, y1: 528, color: "#0EA5E9" },
+    { key: "salidas", label: "SALIDAS", y0: 528, y1: 650, color: "#2563EB" },
   ];
 
   const CX_CENTRO = 180;
@@ -406,20 +408,41 @@ function DiagramaFlujoMobile() {
     return CX_CENTRO + n.lado * OFFSET_X;
   }
 
-  // ── Tuberías: paths gruesos con glow entre nodos consecutivos ──
+  // ── Tuberías tipo "S" con curvas más pronunciadas ──
   const tuberias = nodos.slice(0, -1).map((n, i) => {
     const next = nodos[i + 1];
     const x1 = cx(n);
     const y1 = n.y + R + 4;
     const x2 = cx(next);
     const y2 = next.y - R - 4;
-    const mx = (x1 + x2) / 2;
-    const my = (y1 + y2) / 2;
-    // Curva tipo "S" suave
-    const cp1x = x1 + (n.lado === next.lado ? n.lado * 50 : (x2 - x1) * 0.3);
-    const cp1y = y1 + (y2 - y1) * 0.35;
-    const cp2x = x2 - (n.lado === next.lado ? next.lado * 50 : (x2 - x1) * 0.3);
-    const cp2y = y2 - (y2 - y1) * 0.35;
+
+    const dy = y2 - y1;
+
+    // Control points para curva en S pronunciada
+    // Si cambian de lado: la curva cruza el centro formando una S
+    // Si son del mismo lado: la curva se abre hacia afuera
+    let cp1x: number, cp1y: number, cp2x: number, cp2y: number;
+
+    if (n.lado === 0 || next.lado === 0) {
+      // Uno de los dos está en el centro → curva suave hacia el centro
+      cp1x = x1 + (CX_CENTRO - x1) * 0.5;
+      cp1y = y1 + dy * 0.25;
+      cp2x = x2 + (CX_CENTRO - x2) * 0.5;
+      cp2y = y2 - dy * 0.25;
+    } else if (n.lado !== next.lado) {
+      // Cambian de lado → S que cruza por el centro
+      cp1x = x1 + (n.lado * 30);           // empuja hacia afuera un poco
+      cp1y = y1 + dy * 0.45;
+      cp2x = x2 + (next.lado * 30);
+      cp2y = y2 - dy * 0.45;
+    } else {
+      // Mismo lado → lazo hacia afuera
+      cp1x = x1 + n.lado * 70;
+      cp1y = y1 + dy * 0.35;
+      cp2x = x2 + next.lado * 70;
+      cp2y = y2 - dy * 0.35;
+    }
+
     const d = `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
     return { d, delay: i * 0.22, color: next.color };
   });
@@ -427,12 +450,11 @@ function DiagramaFlujoMobile() {
   return (
     <div className="md:hidden w-full">
       <svg
-        viewBox="0 0 360 760"
+        viewBox="0 0 360 660"
         className="mx-auto h-auto w-full max-w-sm"
         aria-hidden="true"
       >
         <defs>
-          {/* Glow para tuberías */}
           <filter id="pipeGlow" x="-30%" y="-30%" width="160%" height="160%">
             <feGaussianBlur stdDeviation="4" result="blur" />
             <feMerge>
@@ -440,7 +462,6 @@ function DiagramaFlujoMobile() {
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
-          {/* Gradiente de tubería */}
           <linearGradient id="pipeGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#E0F2FE" stopOpacity="0.6" />
             <stop offset="50%" stopColor="#7DD3FC" stopOpacity="0.9" />
@@ -448,7 +469,7 @@ function DiagramaFlujoMobile() {
           </linearGradient>
         </defs>
 
-        {/* ── Fondos de grupo ── */}
+        {/* ── Fondos de grupo (tocándose) ── */}
         {grupos.map((g) => (
           <g key={g.key}>
             <rect
@@ -456,29 +477,29 @@ function DiagramaFlujoMobile() {
               y={g.y0}
               width="320"
               height={g.y1 - g.y0}
-              rx="18"
+              rx="14"
               fill={g.color}
-              opacity="0.04"
+              opacity="0.035"
               stroke={g.color}
-              strokeOpacity="0.12"
+              strokeOpacity="0.15"
               strokeWidth="1"
             />
             <text
               x="340"
-              y={g.y0 + 14}
+              y={g.y0 + 13}
               textAnchor="end"
               fontFamily="ui-monospace, monospace"
               fontSize="9"
               letterSpacing="2"
               fill={g.color}
-              opacity="0.5"
+              opacity="0.45"
             >
               {g.label}
             </text>
           </g>
         ))}
 
-        {/* ── Tuberías (fondo grueso) ── */}
+        {/* ── Tuberías: fondo grueso con glow ── */}
         {tuberias.map((t, i) => (
           <path
             key={`pipe-bg-${i}`}
@@ -487,12 +508,12 @@ function DiagramaFlujoMobile() {
             stroke="url(#pipeGrad)"
             strokeWidth="10"
             strokeLinecap="round"
-            opacity="0.25"
+            opacity="0.22"
             filter="url(#pipeGlow)"
           />
         ))}
 
-        {/* ── Tuberías (línea fina interior) ── */}
+        {/* ── Tuberías: línea fina interior ── */}
         {tuberias.map((t, i) => (
           <path
             key={`pipe-line-${i}`}
@@ -501,11 +522,11 @@ function DiagramaFlujoMobile() {
             stroke={t.color}
             strokeWidth="2"
             strokeLinecap="round"
-            opacity="0.5"
+            opacity="0.45"
           />
         ))}
 
-        {/* ── Partículas viajando por las tuberías ── */}
+        {/* ── Partículas animadas ── */}
         {tuberias.map((t, i) => (
           <motion.circle
             key={`dot-${i}`}
@@ -544,7 +565,7 @@ function DiagramaFlujoMobile() {
               {/* Halo */}
               <circle cx={x} cy={n.y} r="22" fill={n.color} opacity="0.06" />
 
-              {/* Caja del nodo */}
+              {/* Caja */}
               <rect
                 x={x - w / 2}
                 y={n.y - 18}
@@ -566,7 +587,7 @@ function DiagramaFlujoMobile() {
                 opacity="0.6"
               />
 
-              {/* Texto SIEMPRE centrado */}
+              {/* Texto centrado */}
               <text
                 x={x}
                 y={n.y + 4.5}
